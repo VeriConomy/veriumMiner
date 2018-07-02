@@ -7,9 +7,13 @@ Use the original fireworm71 miner for other platforms, or effectsToCause miner i
 If you have ubuntu 16.04 get gcc8 and compile using instructions below...If you do not have cortex-a53 (e.g. cortex-a57) replace "-mcpu=cortex-a53" with "-march=armv8-a". In addition to using gcc8 for compile, these instructions include link time optimization.
 
 # Note, I consider this ppa to be a bit broken however I found it is safe as long I do not uninstall gcc8 after.
+
 sudo add-apt-repository -y ppa:jonathonf/gcc
+
 sudo apt-get update
+
 sudo apt-get install gcc-8
+
 sudo apt-get install g++-8
 
 Refer to rest of this Readme for installing other dependancies.
@@ -21,6 +25,7 @@ Refer to rest of this Readme for installing other dependancies.
 make RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS=" cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" LDFLAGS="-O3 -mcpu=cortex-a53 -flto -fuse-linker-plugin" AR="aarch64-linux-gnu-gcc-ar-8"
 
 (optional step to reduce binary bloat)
+
 strip cpuminer
 
 So what are the benefits of this fork? I calculated to gain 10% compared to the original on my armv8 boards however hit a snag and had to settle for fewer non-oneway threads though still gain about 4-5% in hashrates. Building a new kernel with trimmed config and removing unnecessary services might allow a 1gb board run "-t 3 --oneways=1". If you have 2gb ram, there might be no benefits from this fork so just use the original fireworm71 miner.
