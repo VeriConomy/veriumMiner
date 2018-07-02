@@ -1,3 +1,35 @@
+All credits to fireworm71 et al & effectsToCause et al etc etc.
+
+This Fork is focused on ARMV8/aarch64 sbc's based on Allwinner H5, H6, A64 etc and any board with 64-bit OS that has Cortex-a53 (or above) CPU. This reduces the memory requirements of the default work thread of 3ways (now 2ways) by 1/3rd without performance penalty allowing more of said threads to run on the typically low ram boards currently available. For example, I am able to run "-t 2 --oneways=2" on my 1gb boards. I initially hoped for 3x 2ways & 1x 1ways with "-t 3 --oneways=1" however the bloated Linux Kernel in my manufacturer (Orange Pi) provided Ubuntu kills it due to lack of free memory...
+
+Use the original fireworm71 miner for other platforms, or effectsToCause miner if you have 32-bit x86.
+
+If you have ubuntu 16.04 get gcc8 and compile using instructions below...If you do not have cortex-a53 (e.g. cortex-a57) replace "-mcpu=cortex-a53" with "-march=armv8-a". In addition to using gcc8 for compile, these instructions include link time optimization.
+
+# Note, I consider this ppa to be a bit broken however I found it is safe as long I do not uninstall gcc8 after.
+sudo add-apt-repository -y ppa:jonathonf/gcc
+sudo apt-get update
+sudo apt-get install gcc-8
+sudo apt-get install g++-8
+
+Refer to rest of this Readme for installing other dependancies.
+
+./autogen.sh
+
+./configure CC="gcc-8" CXX="g++-8" CFLAGS="-O3 -mcpu=cortex-a53 -flto -fuse-linker-plugin" CXXFLAGS="-O3 -mcpu=cortex-a53 -flto -fuse-linker-plugin" RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS="cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" --with-curl --with-crypto
+
+make RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS=" cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" LDFLAGS="-O3 -mcpu=cortex-a53 -flto -fuse-linker-plugin" AR="aarch64-linux-gnu-gcc-ar-8"
+
+(optional step to reduce binary bloat)
+strip cpuminer
+
+So what are the benefits of this fork? I calculated to gain 10% compared to the original on my armv8 boards however hit a snag and had to settle for fewer non-oneway threads though still gain about 4-5% in hashrates. Building a new kernel with trimmed config and removing unnecessary services might allow a 1gb board run "-t 3 --oneways=1". If you have 2gb ram, there might be no benefits from this fork so just use the original fireworm71 miner.
+
+So what was changed? I stripped back the scrypt_core_3way() function to reduce it from three to two lanes of processing to reduce memory requirements by 1/3rd with virtually the same performance. More appropriate for the lesser memory capacity/bandwith and small cpu cache found on armv8/aarch64 SOC's.
+
+Provided fireworm71 is satisfied with the changes in this fork, he might merge it into his respository afterwhich I will likely delete this fork.
+
+
 veriumMiner
 ==============
 
