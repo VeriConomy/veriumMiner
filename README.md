@@ -3,6 +3,8 @@ All credits to fireworm71 et al & effectsToCause et al etc etc.
 This Fork is focused on ARMV8/aarch64 sbc's based on Allwinner H5, H6, A64 etc and any board with 64-bit OS that has Cortex-a53 (or above) CPU. This reduces the memory requirements of the default work thread of 3ways (now 2ways) by 1/3rd without performance penalty allowing more of said threads to run on the typically low ram boards currently available. For example, I am able to run "-t 2 --oneways=2" on my 1gb boards. (* See edit below) I initially hoped for 3x 2ways & 1x 1ways with "-t 3 --oneways=1" however the bloated Linux Kernel in my manufacturer (Orange Pi) provided Ubuntu kills it due to lack of free memory...
 
 *EDIT to free up memory and increase the chances of running more/maximum 2ways work threads, refer to section "Kernel tuning" at https://www.codero.com/knowledge-base/content/3/388/en/improving-performance-on-low_memory-linux-vms.html which allowed me to do -t 3 --oneways=1 on my 1gb Orange Pi One Plus/Lite2 sbc's. Power draw is higher, make sure your USB power adapter can keep up.
+Afterwards, flush the buffers and cache before trying to start the miner...
+sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
 
 Use the original fireworm71 miner for other platforms, or effectsToCause miner if you have 32-bit x86.
 
