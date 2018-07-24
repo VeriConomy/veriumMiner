@@ -18,6 +18,18 @@ convertsecs() {
 
 printf "\n\e[1mQuery Miner's status on LAN utility.\e[0m\n";
 
+if ! [ -x "$(command -v nmap)" ]; then
+  printf "Error: nmap is not installed.\n";
+  printf "use \e[1msudo apt-get install nmap\e[0m and try again...\n";
+  exit 1
+fi
+
+if ! [ -x "$(command -v nc)" ]; then
+  printf "Error: nc (netcat) is not installed.\n";
+  printf "use \e[1msudo apt install netcat-openbsd\e[0m and try again...\n";
+  exit 1
+fi
+
 if [ -n "$1" ]; then
         port=$1;
 if [ $1 = "help" ]; then
@@ -44,7 +56,7 @@ fi
 
 printf "Press 'CTRL+C' to cancel at any time...\n";
 printf "* Using IP Class\e[33m ${ipclass}\e[0m & Port\e[33m ${port}\e[0m\n";
-ipaddresslist=`nmap --max-retries=5 -p${port} -T${probetimeout} ${ipclass}.0-255 -oG - | awk '/Up$/{print $2}';`;
+ipaddresslist=`nmap --max-retries=25 -sn ${ipclass}.0-255 -oG - | awk '/Up$/{print $2}';`;
 
 if [[ -z $ipaddresslist ]]; then
 
@@ -52,7 +64,7 @@ printf "\x1b[33m No valid IP addresses found...\x1b[0m\n";
 printf "Is Router isolating clients?\n";
 printf "Note(1). All miners must be run with \x1b[36m--api-bind 0.0.0.0:4048\x1b[0m parameter in their commandline\n";
 printf "in order for this script to successfuly query the running miner. Change recommended Port if needed.\n";
-printf "Note(2). WIFI adapters with power saving enabled, maybe unreliable to probing.\n";
+printf "Note(2). WIFI adapters with powers saving enabled, maybe unreliable to probing.\n";
 printf "\e[1m$0 help\e[0m for usage instruction (i.e. providing Port number and IP Class)\n";
 
 else
@@ -61,7 +73,7 @@ minercount=0;
 
 for dest in $ipaddresslist; do
 
-summary=`echo summary | nc -i 1 -s ${probetimeout} -w ${probetimeout} -n ${dest} ${port};`;
+summary=`echo summary | nc -i 1 -s ${probetimeout} -w ${probetimeout} -n ${dest} ${port} 2> /dev/null;`;
 
 if [ -n "$summary" ]; then
 
