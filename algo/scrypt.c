@@ -52,6 +52,8 @@
 #undef HAVE_SHA256_8WAY
 #endif
 
+#ifndef __aarch64__
+
 static const uint32_t keypad[12] = {
 	0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000280
 };
@@ -61,11 +63,10 @@ static const uint32_t innerpad[11] = {
 static const uint32_t outerpad[8] = {
 	0x80000000, 0, 0, 0, 0, 0, 0, 0x00000300
 };
+
 static const uint32_t finalblk[16] = {
 	0x00000001, 0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000620
 };
-
-#ifndef __aarch64__
 
 static inline void HMAC_SHA256_80_init(const uint32_t *key,
 	uint32_t *tstate, uint32_t *ostate)
@@ -439,25 +440,25 @@ void scrypt_core_3way(uint32_t *X, uint32_t *V, int N);
 #define HAVE_SCRYPT_2WAY 1
 #define scrypt_best_throughput() 2
 
-//simplified & inlinable version of memcpy.
-static inline void newmemcpy(uint32_t *__restrict__ dstp, const uint32_t *__restrict__ srcp, uint len)
+//simplified & inlinable version of memcpy. 64-bit copy
+static inline void newmemcpy(uint32_t *dstp, const uint32_t *srcp, uint len)
 {
-	ulong *dst = (ulong *) dstp;
-	ulong *src = (ulong *) srcp;
+	uint64_t *dst = (uint64_t *) dstp;
+	uint64_t *src = (uint64_t *) srcp;
 	uint i;
 
-	for(i = 0; i < (len / sizeof(ulong)); i++)
+	for(i = 0; i < (len / sizeof(uint64_t)); i++)
 		*dst++ = *src++;
 }
 
 //simplified & inlinable version of memcpy with "tail" handling.
-static inline void newmemcpytail(uint32_t *__restrict__ dstp, const uint32_t *__restrict__ srcp, uint len)
+static inline void newmemcpytail(uint32_t *dstp, const uint32_t *srcp, uint len)
 {
-	ulong *dst = (ulong *) dstp;
-	ulong *src = (ulong *) srcp;
+	uint64_t *dst = (uint64_t *) dstp;
+	uint64_t *src = (uint64_t *) srcp;
 	uint i, tail;
 
-	for(i = 0; i < (len / sizeof(ulong)); i++)
+	for(i = 0; i < (len / sizeof(uint64_t)); i++)
 		*dst++ = *src++;
 
 	tail = len & (sizeof(ulong) - 1);
@@ -470,8 +471,8 @@ static inline void newmemcpytail(uint32_t *__restrict__ dstp, const uint32_t *__
 	//}
 }
 
-//simplified & inlinable version of memcpy.
-static inline void scrypt_core_copy(uint32_t *__restrict__ dstp, uint32_t *__restrict__ srcp)
+//simplified & inlinable version of memcpy. replaced with memcpy64
+static inline void scrypt_core_copy(void *dstp, void *srcp)
 {
 	ulong *dst = (ulong *) dstp;
 	ulong *src = (ulong *) srcp;
@@ -482,35 +483,73 @@ static inline void scrypt_core_copy(uint32_t *__restrict__ dstp, uint32_t *__res
 }
 
 //functions inspired by newmemcopy used in salsa20_block which itself was not as performant as original xorsalsa.
-static inline void salsa_postloop_copyadd(uint32_t *__restrict__ dstp, uint32_t *__restrict__ srcp)
+static inline void salsa_postloop_copyadd(uint32_t *dstp, uint32_t *srcp)
 {
 	uint i;
 	for(i = 0; i < 16; i++)
 		*dstp++ += *srcp++;
 }
 
-static inline void salsaprefetch_postloop_add(uint32_t *__restrict__ dstp, uint32_t *__restrict__ srcp)
+static inline void salsaprefetch_postloop_add(uint32_t *dstp, uint32_t *srcp)
 {
 	uint i;
 	for(i = 0; i < 15; i++)
 		*dstp++ += *srcp++;
 }
 
-static inline void salsa20_block_xoreq_preloop(uint32_t *__restrict__ x, uint32_t *__restrict__ B, const uint32_t *__restrict__ Bx)
+static inline void salsa20_block_xoreq_preloop(uint32_t *x, uint32_t *B, const uint32_t *Bx)
 {
 	uint i;
 	for(i = 0; i < 16; i++)
 		*x++ = (*B++ ^= *Bx++);
 }
 
-//does not work
-static inline uint32x4_t neon_bswap32_uint32x4_t(uint32x4_t val)
-{
-    val = vorrq_u32(vandq_u32(vshlq_n_u32(val, 8), vdupq_n_u32(4278255360)), vandq_u32(vsriq_n_u32(val,val, 8), vdupq_n_u32(16711935))); 
-    return vorrq_u32(vshlq_n_u32(val, 16), vsriq_n_u32(val,val, 16));
-}
+/*static const uint32_t sha256_h[8] = {
+	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+};*/
 
-static const uint32_t sha256_h[8] = {
+/*static uint32_t bufouterpad[16] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0x80000000, 0, 0, 0, 
+	0, 0, 0, 0x00000300
+};*/
+/*
+static uint32_t finalblock[48] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0x00000001, 0x80000000, 0, 0, 
+	0, 0, 0, 0, 
+	0, 0, 0, 0, 
+	0, 0, 0, 0x00000620
+};*/
+
+/*static uint32_t pad[16] = {
+	0, 0, 0, 0, 0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000280
+};
+
+static uint32_t pad2[16] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0x5c5c5c5c, 0x5c5c5c5c, 0x5c5c5c5c, 0x5c5c5c5c,
+	0x5c5c5c5c, 0x5c5c5c5c, 0x5c5c5c5c, 0x5c5c5c5c,
+};
+
+static uint32_t pad3[16] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0x36363636, 0x36363636, 0x36363636, 0x36363636,
+	0x36363636, 0x36363636, 0x36363636, 0x36363636,
+};*/
+
+static const uint32x4x2_t sha256_h_neon = {
 	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
@@ -543,14 +582,10 @@ static const uint32x4x4_t kc = {
 	0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2,
 };
 
-static uint32x4_t w0, w1, w2, w3, ddtmp;
-static uint32x4x2_t dd, sta;
-static uint32x4_t t0, t1;
-
-static inline void sha256_init_armv8(uint32_t *__restrict__ state)
+/*static inline void sha256_init_armv8(uint32_t *state)
 {
 	newmemcpy(state, sha256_h, 32);
-}
+}*/
 
 #define Rx(T0, T1, K, W0, W1, W2, W3)      \
 	W0 = vsha256su0q_u32( W0, W1 );    \
@@ -571,30 +606,37 @@ static inline void sha256_init_armv8(uint32_t *__restrict__ state)
 	dd.val[0] = vsha256hq_u32( dd.val[0], dd.val[1], T0 );  \
 	dd.val[1] = vsha256h2q_u32( dd.val[1], ddtmp, T0 );
 
+#define __swap32gen(x)							\
+    (__uint32_t)(((__uint32_t)(x) & 0xff) << 24 |			\
+    ((__uint32_t)(x) & 0xff00) << 8 | ((__uint32_t)(x) & 0xff0000) >> 8 |\
+    ((__uint32_t)(x) & 0xff000000) >> 24)
+
 //based on sha2armv8.c in new vrm wallet. Minor performance gain from inlineable shrunken code.
-static inline void sha256_transform_armv8(uint32_t state[8], const uint32_t data[16], int swap)
+static inline void sha256_transform_armv8(uint32_t state[8], const uint32_t data[16])
 {
+	static uint32x4_t w0, w1, w2, w3, ddtmp;
+	static uint32x4x2_t dd, sta;
+	static uint32x4_t t0, t1;
 
 	/* load state */
 	sta.val[0] = vld1q_u32(&state[0]);
 	sta.val[1] = vld1q_u32(&state[4]);
-
+	dd = sta;
 	/* load message */
 	w0 = vld1q_u32(data);
 	w1 = vld1q_u32(data + 4);
+	/* initialize t0, dd.val[0], dd.val[1] */
+	t0 = vaddq_u32(w0, k0.val[0]);
 	w2 = vld1q_u32(data + 8);
 	w3 = vld1q_u32(data + 12);
 
-	if (__builtin_expect(swap, 0)) {
+	/*if (__builtin_expect(swap, 0)) { moved to sha256 compress function
 		w0 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w0)));
 		w1 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w1)));
 		w2 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w2)));
 		w3 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w3)));
-	}
+	}*/
 
-	/* initialize t0, dd.val[0], dd.val[1] */
-	t0 = vaddq_u32(w0, k0.val[0]);
-	dd = sta;
 	//dd.val[1] = s1;
 
 	/* perform rounds of four */
@@ -624,107 +666,329 @@ static inline void sha256_transform_armv8(uint32_t state[8], const uint32_t data
 	vst1q_u32(&state[4], sta.val[1]);
 }
 
-// scrypt_core prefers this
-static void HMAC_SHA256_80_init_armv8_noinline(const uint32_t *__restrict__ key,
-	uint32_t *__restrict__ tstate, uint32_t *__restrict__ ostate)
+static inline void sha256_transform_armv8_init(uint32_t state[8], const uint32_t data[16])
 {
-	uint32_t ihash[8];
-	uint32_t pad[16];
-	int i;
+	static uint32x4_t w0, w1, w2, w3, ddtmp;
+	static uint32x4x2_t dd, sta;
+	static uint32x4_t t0, t1;
 
-	/* tstate is assumed to contain the midstate of key */
-	newmemcpy(pad, key + 16, 16);
-	newmemcpy(pad + 4, keypad, 48);
-	sha256_transform_armv8(tstate, pad, 0);
-	newmemcpy(ihash, tstate, 32);
+	/* load message */
+	w0 = vld1q_u32(data);
+	w1 = vld1q_u32(data + 4);
+	t0 = vaddq_u32(w0, k0.val[0]);
+	w2 = vld1q_u32(data + 8);
+	w3 = vld1q_u32(data + 12);
 
-	sha256_init_armv8(ostate);
-	for (i = 0; i < 8; i++)
-		pad[i] = ihash[i] ^ 0x5c5c5c5c;
-	for (; i < 16; i++)
-		pad[i] = 0x5c5c5c5c;
-	sha256_transform_armv8(ostate, pad, 0);
+	/* initialize t0, dd.val[0], dd.val[1] */
+ 
+	dd = sha256_h_neon;
+	//dd.val[1] = s1;
 
-	sha256_init_armv8(tstate);
-	for (i = 0; i < 8; i++)
-		pad[i] = ihash[i] ^ 0x36363636;
-	for (; i < 16; i++)
-		pad[i] = 0x36363636;
-	sha256_transform_armv8(tstate, pad, 0);
+	/* perform rounds of four */
+	Rx(t0, t1, k0.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k0.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k0.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, k4.val[0], w3, w0, w1, w2);
+	Rx(t0, t1, k4.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k4.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k4.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, k8.val[0], w3, w0, w1, w2);
+	Rx(t0, t1, k8.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k8.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k8.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, kc.val[0], w3, w0, w1, w2);
+	Ry(t0, t1, kc.val[1], w1);
+	Ry(t1, t0, kc.val[2], w2);
+	Ry(t0, t1, kc.val[3], w3);
+	Rz(t1);
+
+	/* update state */
+	sta.val[0] = vaddq_u32(sha256_h_neon.val[0], dd.val[0]);
+	sta.val[1] = vaddq_u32(sha256_h_neon.val[1], dd.val[1]);
+
+	/* save state */
+	vst1q_u32(&state[0], sta.val[0]);
+	vst1q_u32(&state[4], sta.val[1]);
 }
 
-static inline void HMAC_SHA256_80_init_armv8(const uint32_t *__restrict__ key,
-	uint32_t *__restrict__ tstate, uint32_t *__restrict__ ostate)
+static inline void sha256_transform_80_128_armv8(uint32_t *state, const uint32_t *data, const uint32_t *tstate, uint32_t *output, bool finalstep)
 {
-	uint32_t ihash[8];
-	uint32_t pad[16];
-	int i;
+	static uint32x4_t w0, w1, w2, w3, ddtmp;
+	static uint32x4x2_t dd, sta;
+	static uint32x4_t t0, t1;
 
-	/* tstate is assumed to contain the midstate of key */
-	newmemcpy(pad, key + 16, 16);
-	newmemcpy(pad + 4, keypad, 48);
-	sha256_transform_armv8(tstate, pad, 0);
-	newmemcpy(ihash, tstate, 32);
+	/* load state */
+	sta.val[0] = vld1q_u32(&tstate[0]);
+	sta.val[1] = vld1q_u32(&tstate[4]);
+	dd = sta;
+	/* load message */
+	w0 = vld1q_u32(data);
+	w1 = vld1q_u32(data + 4);
+	t0 = vaddq_u32(w0, k0.val[0]);
+	w2 = vld1q_u32(data + 8);
+	w3 = vld1q_u32(data + 12);
 
-	sha256_init_armv8(ostate);
-	for (i = 0; i < 8; i++)
-		pad[i] = ihash[i] ^ 0x5c5c5c5c;
-	for (; i < 16; i++)
-		pad[i] = 0x5c5c5c5c;
-	sha256_transform_armv8(ostate, pad, 0);
+	/* initialize t0, dd.val[0], dd.val[1] */
+ 
+	//dd.val[1] = s1;
 
-	sha256_init_armv8(tstate);
-	for (i = 0; i < 8; i++)
-		pad[i] = ihash[i] ^ 0x36363636;
-	for (; i < 16; i++)
-		pad[i] = 0x36363636;
-	sha256_transform_armv8(tstate, pad, 0);
-}
+	/* perform rounds of four */
+	Rx(t0, t1, k0.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k0.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k0.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, k4.val[0], w3, w0, w1, w2);
+	Rx(t0, t1, k4.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k4.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k4.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, k8.val[0], w3, w0, w1, w2);
+	Rx(t0, t1, k8.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k8.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k8.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, kc.val[0], w3, w0, w1, w2);
+	Ry(t0, t1, kc.val[1], w1);
+	Ry(t1, t0, kc.val[2], w2);
+	Ry(t0, t1, kc.val[3], w3);
+	Rz(t1);
 
-static inline void PBKDF2_SHA256_80_128_armv8(const uint32_t *__restrict__ tstate,
-	const uint32_t *__restrict__ ostate, const uint32_t *__restrict__ salt, uint32_t *__restrict__ output)
-{
-	uint32_t istate[8], ostate2[8];
-	uint32_t ibuf[16], obuf[16];
-	int i, j;
+	/* update state */
+	sta.val[0] = vaddq_u32(sta.val[0], dd.val[0]);
+	sta.val[1] = vaddq_u32(sta.val[1], dd.val[1]);
 
-	newmemcpy(istate, tstate, 32);
-	sha256_transform_armv8(istate, salt, 0);
-	
-	newmemcpy(ibuf, salt + 16, 16);
-	newmemcpytail(ibuf + 5, innerpad, 44);
-	newmemcpy(obuf + 8, outerpad, 32);
-
-	for (i = 0; i < 4; i++) {
-		newmemcpy(obuf, istate, 32);
-		ibuf[4] = i + 1;
-		sha256_transform_armv8(obuf, ibuf, 0);
-
-		newmemcpy(ostate2, ostate, 32);
-		sha256_transform_armv8(ostate2, obuf, 0);
-		for (j = 0; j < 8; j++)
-			output[8 * i + j] = __builtin_bswap32(ostate2[j]);
+	/* save state */
+	if(!finalstep) {
+		vst1q_u32(&state[0], sta.val[0]);
+		vst1q_u32(&state[4], sta.val[1]);
+	} else {
+		sta.val[0] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[0])));
+		sta.val[1] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[1])));
+		vst1q_u32(output + 0, sta.val[0]);
+		vst1q_u32(output + 4, sta.val[1]);
 	}
 }
 
-static void PBKDF2_SHA256_128_32_armv8(uint32_t *__restrict__ tstate, uint32_t *__restrict__ ostate,
-	const uint32_t *__restrict__ salt, uint32_t *__restrict__ output)
+static inline void sha256_compress_armv8(uint32_t *state, const uint32_t *data, int blocks, uint32_t *output, bool finalstep)
 {
-	uint32_t buf[16];
-	int i;
-	
-	sha256_transform_armv8(tstate, salt, 1);
-	sha256_transform_armv8(tstate, salt + 16, 1);
-	sha256_transform_armv8(tstate, finalblk, 0);
-	newmemcpy(buf, tstate, 32);
-	newmemcpy(buf + 8, outerpad, 32);
+	static uint32x4_t w0, w1, w2, w3, ddtmp;
+	static uint32x4x2_t dd, sta;
+	static uint32x4_t t0, t1;
 
-	sha256_transform_armv8(ostate, buf, 0);
+	/* load state */
+	sta.val[0] = vld1q_u32(&state[0]);
+	sta.val[1] = vld1q_u32(&state[4]);
+
+while (blocks)
+      {
+ 
+	/* load message */
+	w0 = vld1q_u32(data);
+	w1 = vld1q_u32(data + 4);
+	dd = sta;
+	w2 = vld1q_u32(data + 8);
+	w3 = vld1q_u32(data + 12);
+
+	if (blocks != 1) {
+		w0 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w0)));
+		w1 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w1)));
+		w2 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w2)));
+		w3 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w3)));
+	}
+
+	/* initialize t0, dd.val[0], dd.val[1] */
+	t0 = vaddq_u32(w0, k0.val[0]);
+ 
+	//dd.val[1] = s1;
+
+	/* perform rounds of four */
+	Rx(t0, t1, k0.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k0.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k0.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, k4.val[0], w3, w0, w1, w2);
+	Rx(t0, t1, k4.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k4.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k4.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, k8.val[0], w3, w0, w1, w2);
+	Rx(t0, t1, k8.val[1], w0, w1, w2, w3);
+	Rx(t1, t0, k8.val[2], w1, w2, w3, w0);
+	Rx(t0, t1, k8.val[3], w2, w3, w0, w1);
+	Rx(t1, t0, kc.val[0], w3, w0, w1, w2);
+	Ry(t0, t1, kc.val[1], w1);
+	Ry(t1, t0, kc.val[2], w2);
+	Ry(t0, t1, kc.val[3], w3);
+	Rz(t1);
+
+	/* update state */
+	sta.val[0] = vaddq_u32(sta.val[0], dd.val[0]);
+	sta.val[1] = vaddq_u32(sta.val[1], dd.val[1]);
+
+      data += 16;
+      blocks--;
+}
+	/* save state */
+	vst1q_u32(&state[0], sta.val[0]);
+	vst1q_u32(&state[4], sta.val[1]);
+
+	/* save state */
+	if(!finalstep) {
+		vst1q_u32(&state[0], sta.val[0]);
+		vst1q_u32(&state[4], sta.val[1]);
+	} else {
+		sta.val[0] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[0])));
+		sta.val[1] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[1])));
+		vst1q_u32(output + 0, sta.val[0]);
+		vst1q_u32(output + 4, sta.val[1]);
+	}
+
+}
+
+static inline void HMAC_SHA256_80_init_armv8(const uint32_t *key,
+	uint32_t *tstate, uint32_t *ostate, uint32_t numways)
+{
+	//uint32_t ihash[8];
+	//uint32_t pad[16];
+	//size_t numkeys = (sizeof(key)/sizeof(key[0]));
+	uint32_t pad[16] = {
+	0, 0, 0, 0, 0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000280
+	};
+
+	uint32_t pad2[16] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	1549556828, 1549556828, 1549556828, 1549556828,
+	1549556828, 1549556828, 1549556828, 1549556828,
+	};
+
+	uint32_t pad3[16] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	909522486, 909522486, 909522486, 909522486,
+	909522486, 909522486, 909522486, 909522486,
+	};
+
+	int i;
+	while (numways)
+	{
+	/* tstate is assumed to contain the midstate of key */
+	newmemcpy(pad, key + 16, 16);
+	//newmemcpy(pad + 4, keypad, 48);
+	sha256_transform_armv8(tstate, pad);
+	//newmemcpy(ihash, tstate, 32);
+
+	//sha256_init_armv8(ostate);
 	for (i = 0; i < 8; i++)
-		output[i] = __builtin_bswap32(ostate[i]);
+		pad2[i] = tstate[i] ^ 1549556828;
+	/*for (; i < 16; i++)
+		pad[i] = 0x5c5c5c5c;*/
+	sha256_transform_armv8_init(ostate, pad2);
+
+	//sha256_init_armv8(tstate);
+	for (i = 0; i < 8; i++)
+		pad3[i] = tstate[i] ^ 909522486;
+	/*for (; i < 16; i++)
+		pad[i] = 0x36363636;*/
+	sha256_transform_armv8_init(tstate, pad3);
+	key += 20;
+	ostate += 8;
+	tstate += 8;
+	numways--;
+	}
+}
+
+static inline void PBKDF2_SHA256_80_128_armv8(const uint32_t *tstate,
+	const uint32_t *ostate, const uint32_t *salt, uint32_t *output)
+{
+	uint32_t istate[8], ostate2[8];
+	/*uint32_t ibuf[16], obuf[16];*/
+
+	uint32_t ibuf[16] = {
+	0, 0, 0, 0,
+	0, 0x80000000, 0, 0,
+	0, 0, 0, 0, 
+	0, 0, 0, 0x000004a0
+	};
+	uint32_t bufouterpad[16] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0x80000000, 0, 0, 0, 
+	0, 0, 0, 0x00000300
+	};
+	int i, j;
+
+	//newmemcpy(istate, tstate, 32);
+	sha256_transform_80_128_armv8(istate, salt, tstate, output, false);
+	
+	newmemcpy(ibuf, salt + 16, 16);
+	//newmemcpytail(ibuf + 5, innerpad, 44);
+	//newmemcpy(obuf + 8, outerpad, 32);
+
+	for (i = 0; i < 4; i++) {
+		//newmemcpy(obuf, istate, 32);
+		ibuf[4] = i + 1;
+		//sha256_transform_80_128_armv8(obuf, ibuf, istate);
+		sha256_transform_80_128_armv8(bufouterpad, ibuf, istate, output, false);
+	asm("":::"memory");
+		//newmemcpy(ostate2, ostate, 32);
+		sha256_transform_80_128_armv8(ostate2, bufouterpad, ostate, output, true);
+		/*for (j = 0; j < 8; j++)
+			output[8 * i + j] = __builtin_bswap32(ostate2[j]);*/
+		output+=8;
+	}
+}
+
+static inline void PBKDF2_SHA256_128_32_armv8(uint32_t *tstate, uint32_t *ostate,
+	const uint32_t *salt, uint32_t *output, uint32_t numways)
+{
+	//uint32_t buf[16];
+	//uint32_t blocks[48];
+	uint32_t finalblock[48] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0x00000001, 0x80000000, 0, 0, 
+	0, 0, 0, 0, 
+	0, 0, 0, 0, 
+	0, 0, 0, 0x00000620
+	};
+	uint32_t bufouterpad[16] = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0x80000000, 0, 0, 0, 
+	0, 0, 0, 0x00000300
+	};
+	int i;
+	while (numways)
+	{
+	//newmemcpy(blocks, salt, 128);
+	//newmemcpy(blocks + 32, finalblk, 64);
+	newmemcpy(finalblock, salt, 128);
+
+	//printf("0x%08x 0x%08x\n", finalblk[15], __builtin_bswap32(finalblk[15]));
+	
+	sha256_compress_armv8(tstate, finalblock, 3, output, false);
+
+/*	sha256_transform_armv8(tstate, salt, 1);
+	sha256_transform_armv8(tstate, salt + 16, 1);
+	sha256_transform_armv8(tstate, finalblk, 0);*/
+	//newmemcpy(buf, tstate, 32);
+	newmemcpy(bufouterpad, tstate, 32);
+	//newmemcpy(buf + 8, outerpad, 32);
+
+	sha256_compress_armv8(ostate, bufouterpad, 1, output, true);
+	/*for (i = 0; i < 8; i++)
+		output[i] = __builtin_bswap32(ostate[i]);*/
+	salt += 32;
+	ostate += 8;
+	tstate += 8;
+	output += 8;
+	numways--;
+	}
 }
 /*
-static inline uint32_t ROTL(uint32_t *__restrict__ value, unsigned int count) {
+static inline uint32_t ROTL(uint32_t *value, unsigned int count) {
     return *value<<count | *value>>(32-count);
 }*/
 
@@ -736,7 +1000,7 @@ static inline uint32_t ROTL(uint32_t *__restrict__ value, unsigned int count) {
 	d ^= ROTL(c + b,13),	\
 	a ^= ROTL(d + c,18))
 /*
-static inline void QR(uint32_t *__restrict__ a, uint32_t *__restrict__ b, uint32_t *__restrict__ c, uint32_t *__restrict__ d) {
+static inline void QR(uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
 	*b ^= ROTL(*a + *d, 7);
 	*c ^= ROTL(*b + *a, 9);
 	*d ^= ROTL(*c + *b,13);
@@ -780,7 +1044,7 @@ salsa20_block_xoreq_preloop(x,B,Bx);
 }
 
 //Wikipedia based xorsalsa. Slight performance regression.
-static void salsa20_block_prefetch(uint32_t B[16], uint32_t const Bx[16], uint32_t *__restrict__ V, uint32_t N)
+static void salsa20_block_prefetch(uint32_t B[16], uint32_t const Bx[16], uint32_t *V, uint32_t N)
 {
 	int i;
 	uint32_t x[16];
@@ -828,13 +1092,75 @@ static inline uint32_t myXOR(uint32_t x, uint32_t y)
    return (x | y) & (~x | ~y);
 }
 
-/* Loop is unrolled from 4 iterations to 2 for slightly better performance on aarch64*/
-static void inline xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
+//64-bit eqxor for xor_salsa8(). B & Bx must be uint32_t[16]
+static inline void salsa8eqxorload64(uint32_t *B, const uint32_t *Bx)
+{	
+	uint64_t *dst = (uint64_t *) B;
+	uint64_t *src = (uint64_t *) Bx;
+
+	*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;
+}
+
+/* 
+ Loop is unrolled from 4 iterations to 2 for slightly better performance on aarch64.
+ 64-bit logical operatations.
+*/
+static void inline xor_salsa8(uint32_t *B, const uint32_t *Bx)
 {
 	uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
-	int i;
+	//uint64_t B64 = 
+	//uint64_t x15ptr = (uint64_t)&x15;
+	//uint64_t B15ptr = (uint64_t)&B[15];
+	uint32_t i;
+	//uint64_t *Bu64ptr = (void*)B;
+	//uint64_t *x00u64ptr = (void*)&x00;
 
-	x00 = (B[ 0] ^= Bx[ 0]);
+	salsa8eqxorload64(B,Bx);
+
+/*	x00u64ptr[0] = Bu64ptr[7];
+	x00u64ptr[1] = Bu64ptr[6];
+	x00u64ptr[2] = Bu64ptr[5];
+	x00u64ptr[3] = Bu64ptr[4];
+	x00u64ptr[4] = Bu64ptr[3];
+	x00u64ptr[5] = Bu64ptr[2];
+	x00u64ptr[6] = Bu64ptr[1];
+	x00u64ptr[7] = Bu64ptr[0];*/
+
+	x00 = B[ 0];
+	x01 = B[ 1];
+	x02 = B[ 2];
+	x03 = B[ 3];
+	x04 = B[ 4];
+	x05 = B[ 5];
+	x06 = B[ 6];
+	x07 = B[ 7];
+	x08 = B[ 8];
+	x09 = B[ 9];
+	x10 = B[10];
+	x11 = B[11];
+	x12 = B[12];
+	x13 = B[13];
+	x14 = B[14];
+	x15 = B[15];
+/*
+printf("B[0] %p\n", (void *) &B[0]);
+printf("B[1] %p\n", (void *) &B[1]);
+printf("x02 %p\n", (void *) &x02);
+printf("x03 %p\n", (void *) &x03);
+printf("x04 %p\n", (void *) &x04);
+printf("x05 %p\n", (void *) &x05);
+printf("x06 %p\n", (void *) &x06);
+printf("x07 %p\n", (void *) &x07);
+printf("x08 %p\n", (void *) &x08);
+printf("x09 %p\n", (void *) &x09);
+printf("x10 %p\n", (void *) &x10);
+printf("x11 %p\n", (void *) &x11);
+printf("x12 %p\n", (void *) &x12);
+printf("x13 %p\n", (void *) &x13);
+printf("x14 %p\n", (void *) &x14);
+printf("x15 %p\n", (void *) &x15);*/
+
+	/*x00 = (B[ 0] ^= Bx[ 0]);
 	x01 = (B[ 1] ^= Bx[ 1]);
 	x02 = (B[ 2] ^= Bx[ 2]);
 	x03 = (B[ 3] ^= Bx[ 3]);
@@ -849,9 +1175,9 @@ static void inline xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
 	x12 = (B[12] ^= Bx[12]);
 	x13 = (B[13] ^= Bx[13]);
 	x14 = (B[14] ^= Bx[14]);
-	x15 = (B[15] ^= Bx[15]);
-	for (i = 0; i < 2; i ++) {
+	x15 = (B[15] ^= Bx[15]);*/
 #define R(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
+	for (i = 0; i < 3; i++) {
 
 		/* Operate on columns. */
 		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
@@ -878,7 +1204,7 @@ static void inline xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
 		
 		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
 		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
-
+}
 		/* Operate on columns. */
 		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
 		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
@@ -904,157 +1230,8 @@ static void inline xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
 		
 		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
 		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
-
-/*		// Operate on columns. *attempted to encourange dual issue. gcc8 does not order enough asm instructions for xorsalsa
-		tmp = x00 + x12;
-		tmp2 = x05 + x01;
-		x04 ^= R(tmp, 7);
-		x09 ^= R(tmp2, 7);
-		tmp = x10 + x06;
-		tmp2 = x15 + x11;
-		x14 ^= R(tmp, 7);	
-		x03 ^= R(tmp2, 7);
-		
-		tmp = x04 + x00;
-		tmp2 = x09 + x05;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
-		tmp = x14 + x10;
-		tmp2 = x03 + x15;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
-		
-		tmp = x08 + x04;
-		tmp2 = x13 + x09;
-		x12 ^= R(tmp,13);	
-		x01 ^= R(tmp2,13);
-		tmp = x02 + x14;
-		tmp2 = x07 + x03;
-		x06 ^= R(tmp,13);	
-		x11 ^= R(tmp2,13);
-		
-		tmp = x12 + x08;
-		tmp2 = x01 + x13;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x06 + x02;
-		tmp2 = x11 + x07;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);
-		
-		// Operate on rows. 
-		tmp = x00 + x03;
-		tmp2 = x05 + x04;
-		x01 ^= R(tmp, 7);	
-		x06 ^= R(tmp2, 7);
-		tmp = x10 + x09;
-		tmp2 = x15 + x14;
-		x11 ^= R(tmp, 7);	
-		x12 ^= R(tmp2, 7);
-		
-		tmp = x01 + x00;
-		tmp2 = x06 + x05;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
-		tmp = x11 + x10;
-		tmp2 = x12 + x15;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
-		
-		tmp = x02 + x01;
-		tmp2 = x07 + x06;
-		x03 ^= R(tmp,13);	
-		x04 ^= R(tmp2,13);
-		tmp = x08 + x11;
-		tmp2 = x13 + x12;
-		x09 ^= R(tmp,13);	
-		x14 ^= R(tmp2,13);
-		
-		tmp = x03 + x02;
-		tmp2 = x04 + x07;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x09 + x08;
-		tmp2 = x14 + x13;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);
-
-		// Operate on columns. 
-		tmp = x00 + x12;
-		tmp2 = x05 + x01;
-		x04 ^= R(tmp, 7);
-		x09 ^= R(tmp2, 7);
-		tmp = x10 + x06;
-		tmp2 = x15 + x11;
-		x14 ^= R(tmp, 7);	
-		x03 ^= R(tmp2, 7);
-		
-		tmp = x04 + x00;
-		tmp2 = x09 + x05;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
-		tmp = x14 + x10;
-		tmp2 = x03 + x15;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
-		
-		tmp = x08 + x04;
-		tmp2 = x13 + x09;
-		x12 ^= R(tmp,13);	
-		x01 ^= R(tmp2,13);
-		tmp = x02 + x14;
-		tmp2 = x07 + x03;
-		x06 ^= R(tmp,13);	
-		x11 ^= R(tmp2,13);
-		
-		tmp = x12 + x08;
-		tmp2 = x01 + x13;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x06 + x02;
-		tmp2 = x11 + x07;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);
-		
-		// Operate on rows. 
-		tmp = x00 + x03;
-		tmp2 = x05 + x04;
-		x01 ^= R(tmp, 7);	
-		x06 ^= R(tmp2, 7);
-		tmp = x10 + x09;
-		tmp2 = x15 + x14;
-		x11 ^= R(tmp, 7);	
-		x12 ^= R(tmp2, 7);
-		
-		tmp = x01 + x00;
-		tmp2 = x06 + x05;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
-		tmp = x11 + x10;
-		tmp2 = x12 + x15;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
-		
-		tmp = x02 + x01;
-		tmp2 = x07 + x06;
-		x03 ^= R(tmp,13);	
-		x04 ^= R(tmp2,13);
-		tmp = x08 + x11;
-		tmp2 = x13 + x12;
-		x09 ^= R(tmp,13);	
-		x14 ^= R(tmp2,13);
-		
-		tmp = x03 + x02;
-		tmp2 = x04 + x07;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x09 + x08;
-		tmp2 = x14 + x13;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);
-*/
 #undef R
-	}
+
 	B[ 0] += x00;
 	B[ 1] += x01;
 	B[ 2] += x02;
@@ -1073,13 +1250,47 @@ static void inline xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
 	B[15] += x15;
 }
 
-/* Loop is unrolled from 4 iterations to 2 for slightly better performance on aarch64 */
-static void inline xor_salsa8_prefetch(uint32_t B[16], const uint32_t Bx[16], uint32_t *__restrict__ V, uint32_t N)
+/* 
+ Loop is unrolled from 4 iterations to 2 for slightly better performance on aarch64 
+ 64-bit logical operations.
+*/
+static void inline xor_salsa8_prefetch(uint32_t *B, const uint32_t *Bx, uint32_t *V, uint32_t N)
 {
 	uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
-	int i;
+	//uint32_t *x00ptr = &x00;
+	uint32_t i;
+	//uint64_t *Bu64ptr = (uint64_t *) B;
+	//uint64_t *x00u64ptr = (uint64_t *) &x15;
 
-	x00 = (B[ 0] ^= Bx[ 0]);
+	salsa8eqxorload64(B,Bx);
+
+/*	*x00u64ptr++ = *Bu64ptr++;
+	*x00u64ptr++ = *Bu64ptr++;
+	*x00u64ptr++ = *Bu64ptr++;
+	*x00u64ptr++ = *Bu64ptr++;
+	*x00u64ptr++ = *Bu64ptr++;
+	*x00u64ptr++ = *Bu64ptr++;
+	*x00u64ptr++ = *Bu64ptr++;
+	*x00u64ptr++ = *Bu64ptr++;*/
+
+	x00 = B[ 0];
+	x01 = B[ 1];
+	x02 = B[ 2];
+	x03 = B[ 3];
+	x04 = B[ 4];
+	x05 = B[ 5];
+	x06 = B[ 6];
+	x07 = B[ 7];
+	x08 = B[ 8];
+	x09 = B[ 9];
+	x10 = B[10];
+	x11 = B[11];
+	x12 = B[12];
+	x13 = B[13];
+	x14 = B[14];
+	x15 = B[15];
+
+	/*x00 = (B[ 0] ^= Bx[ 0]);
 	x01 = (B[ 1] ^= Bx[ 1]);
 	x02 = (B[ 2] ^= Bx[ 2]);
 	x03 = (B[ 3] ^= Bx[ 3]);
@@ -1094,9 +1305,9 @@ static void inline xor_salsa8_prefetch(uint32_t B[16], const uint32_t Bx[16], ui
 	x12 = (B[12] ^= Bx[12]);
 	x13 = (B[13] ^= Bx[13]);
 	x14 = (B[14] ^= Bx[14]);
-	x15 = (B[15] ^= Bx[15]);
-	for (i = 0; i < 2; i ++) {
+	x15 = (B[15] ^= Bx[15]);*/
 #define R(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
+	for (i = 0; i < 3; i++) {
 
 		/* Operate on columns. */
 		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
@@ -1123,230 +1334,34 @@ static void inline xor_salsa8_prefetch(uint32_t B[16], const uint32_t Bx[16], ui
 		
 		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
 		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
-
-		/* Operate on columns. */
-		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
-		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
-		
-		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
-		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
-		
-		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
-		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
-		
-		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
-		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
-		
-		/* Operate on rows. */
-		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
-		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
-		
-		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
-		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
-		
-		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
-		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
-		
-		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
-		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
-
-/* attempted to encourange dual issue. gcc8 does not order instructions enough for xorsalsa
-		// Operate on columns. 
-		tmp = x00 + x12;
-		tmp2 = x05 + x01;
-		x04 ^= R(tmp, 7);
-		x09 ^= R(tmp2, 7);
-		tmp = x10 + x06;
-		tmp2 = x15 + x11;
-		x14 ^= R(tmp, 7);	
-		x03 ^= R(tmp2, 7);
-		
-		tmp = x04 + x00;
-		tmp2 = x09 + x05;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
-		tmp = x14 + x10;
-		tmp2 = x03 + x15;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
-		
-		tmp = x08 + x04;
-		tmp2 = x13 + x09;
-		x12 ^= R(tmp,13);	
-		x01 ^= R(tmp2,13);
-		tmp = x02 + x14;
-		tmp2 = x07 + x03;
-		x06 ^= R(tmp,13);	
-		x11 ^= R(tmp2,13);
-		
-		tmp = x12 + x08;
-		tmp2 = x01 + x13;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x06 + x02;
-		tmp2 = x11 + x07;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);
-		
-		// Operate on rows. 
-		tmp = x00 + x03;
-		tmp2 = x05 + x04;
-		x01 ^= R(tmp, 7);	
-		x06 ^= R(tmp2, 7);
-		tmp = x10 + x09;
-		tmp2 = x15 + x14;
-		x11 ^= R(tmp, 7);	
-		x12 ^= R(tmp2, 7);
-		
-		tmp = x01 + x00;
-		tmp2 = x06 + x05;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
-		tmp = x11 + x10;
-		tmp2 = x12 + x15;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
-		
-		tmp = x02 + x01;
-		tmp2 = x07 + x06;
-		x03 ^= R(tmp,13);	
-		x04 ^= R(tmp2,13);
-		tmp = x08 + x11;
-		tmp2 = x13 + x12;
-		x09 ^= R(tmp,13);	
-		x14 ^= R(tmp2,13);
-		
-		tmp = x03 + x02;
-		tmp2 = x04 + x07;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x09 + x08;
-		tmp2 = x14 + x13;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);
 }
-
-
-		// Operate on columns. 
-		tmp = x00 + x12;
-		tmp2 = x05 + x01;
-		x04 ^= R(tmp, 7);
-		x09 ^= R(tmp2, 7);
-		tmp = x10 + x06;
-		tmp2 = x15 + x11;
-		x14 ^= R(tmp, 7);	
-		x03 ^= R(tmp2, 7);
+		/* Operate on columns. */
+		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
+		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
 		
-		tmp = x04 + x00;
-		tmp2 = x09 + x05;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
-		tmp = x14 + x10;
-		tmp2 = x03 + x15;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
+		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
+		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
 		
-		tmp = x08 + x04;
-		tmp2 = x13 + x09;
-		x12 ^= R(tmp,13);	
-		x01 ^= R(tmp2,13);
-		tmp = x02 + x14;
-		tmp2 = x07 + x03;
-		x06 ^= R(tmp,13);	
-		x11 ^= R(tmp2,13);
+		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
+		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
 		
-		tmp = x12 + x08;
-		tmp2 = x01 + x13;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x06 + x02;
-		tmp2 = x11 + x07;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);
+		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
+		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
 		
-		// Operate on rows. 
-		tmp = x00 + x03;
-		tmp2 = x05 + x04;
-		x01 ^= R(tmp, 7);	
-		x06 ^= R(tmp2, 7);
-		tmp = x10 + x09;
-		tmp2 = x15 + x14;
-		x11 ^= R(tmp, 7);	
-		x12 ^= R(tmp2, 7);
+		/* Operate on rows. */
+		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
+		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
 		
-		tmp = x01 + x00;
-		tmp2 = x06 + x05;
-		x02 ^= R(tmp, 9);	
-		x07 ^= R(tmp2, 9);
-		tmp = x11 + x10;
-		tmp2 = x12 + x15;
-		x08 ^= R(tmp, 9);	
-		x13 ^= R(tmp2, 9);
+		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
+		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
 		
-		tmp = x02 + x01;
-		tmp2 = x07 + x06;
-		x03 ^= R(tmp,13);	
-		x04 ^= R(tmp2,13);
-		tmp = x08 + x11;
-		tmp2 = x13 + x12;
-		x09 ^= R(tmp,13);	
-		x14 ^= R(tmp2,13);
+		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
+		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
 		
-		tmp = x03 + x02;
-		tmp2 = x04 + x07;
-		x00 ^= R(tmp,18);	
-		x05 ^= R(tmp2,18);
-		tmp = x09 + x08;
-		tmp2 = x14 + x13;
-		x10 ^= R(tmp,18);	
-		x15 ^= R(tmp2,18);*/
-
-/*		// Operate on columns. 
-
-		tmp = x00 + x12;	tmp2 = x05 + x01;
-		tmp3 = x10 + x06;	tmp4 = x15 + x11;
-		x14 ^= R(tmp, 7);	x03 ^= R(tmp2, 7);
-		x04 ^= R(tmp3, 7);	x09 ^= R(tmp4, 7);
-		
-		tmp = x04 + x00;	tmp2 = x09 + x05;
-		tmp3 = x14 + x10;	tmp4 = x03 + x15;
-		x08 ^= R(tmp, 9);	x13 ^= R(tmp2, 9);
-		x02 ^= R(tmp3, 9);	x07 ^= R(tmp4, 9);
-		
-		tmp = x08 + x04;	tmp2 = x13 + x09;
-		tmp3 = x02 + x14;	tmp4 = x07 + x03;
-		x12 ^= R(tmp,13);	x01 ^= R(tmp2,13);
-		x06 ^= R(tmp3,13);	x11 ^= R(tmp4,13);
-		
-		tmp = x12 + x08;	tmp2 = x01 + x13;
-		tmp3 = x06 + x02;	tmp4 = x11 + x07;
-		x00 ^= R(tmp,18);	x05 ^= R(tmp2,18);
-		x10 ^= R(tmp3,18);	x15 ^= R(tmp4,18);
-		
-		// Operate on rows. 
-
-		tmp = x00 + x03;	tmp2 = x05 + x04;
-		tmp3 = x10 + x09;	tmp4 = x15 + x14;
-		x01 ^= R(tmp, 7);	x06 ^= R(tmp2, 7);
-		x11 ^= R(tmp3, 7);	x12 ^= R(tmp4, 7);
-		
-		tmp = x01 + x00;	tmp2 = x06 + x05;
-		tmp3 = x11 + x10;	tmp4 = x12 + x15;
-		x02 ^= R(tmp, 9);	x07 ^= R(tmp2, 9);
-		x08 ^= R(tmp3, 9);	x13 ^= R(tmp4, 9);
-		
-		tmp = x02 + x01;	tmp2 = x07 + x06;
-		tmp3 = x08 + x11;	tmp4 = x13 + x12;
-		x03 ^= R(tmp,13);	x04 ^= R(tmp2,13);
-		x09 ^= R(tmp3,13);	x14 ^= R(tmp4,13);
-		
-		tmp = x03 + x02;	tmp2 = x04 + x07;
-		tmp3 = x09 + x08;	tmp4 = x14 + x13;
-		x00 ^= R(tmp,18);	x05 ^= R(tmp2,18);
-		x10 ^= R(tmp3,18);	x15 ^= R(tmp4,18);*/
-
+		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
+		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
 #undef R
-	}
+
 	B[ 0] += x00;
 	uint32_t one = 32 * (B[0] & (N - 1));
 	__builtin_prefetch(&V[one + 0]);
@@ -1371,21 +1386,43 @@ static void inline xor_salsa8_prefetch(uint32_t B[16], const uint32_t Bx[16], ui
 	B[15] += x15;
 }
 
-// gcc8 does not always dual issues only 50% of loops.
-static inline void scrypt_core(uint32_t *__restrict__ X, uint32_t *__restrict__ V, int N)
+//64-bit memcpy alternative for scrypt_core(). a & b must be uint32_t[32]
+static inline void memcpy64(uint32_t *b, uint32_t *a)
+{
+    	uint64_t *s1 = (uint64_t *) b;
+    	uint64_t *s2 = (uint64_t *) a;
+
+	*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;
+	*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;
+}
+
+
+//64-bit eqxor load for scrypt_core(). X must be uint32_t[32]
+static inline void eqxorload64(uint32_t *X, uint32_t *V)
+{
+	uint64_t *dst = (uint64_t *) X;
+	uint64_t *src = (uint64_t *) V;
+
+	*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;
+	*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;
+}
+
+// gcc8 does not always dual issue, only 50% of loops.
+static inline void scrypt_core(uint32_t *X, uint32_t *V, int N)
 {
 	int i;
 	uint32_t j, k;
 
 	for (i = 0; i < N; i++) {
-		scrypt_core_copy(&V[i * 32], X);
+		memcpy64(&V[i * 32], X);
 		xor_salsa8(&X[0], &X[16]);
 		xor_salsa8(&X[16], &X[0]);
 	}
 	for (i = 0; i < N; i++) {
 		j = 32 * (X[16] & (N - 1));
-		for (k = 0; k < 32; k++)
-			X[k] ^= V[j + k];
+		/*for (k = 0; k < 32; k++)
+			X[k] ^= V[j + k];*/
+		eqxorload64(X,&V[j]);
 		xor_salsa8(&X[0], &X[16]);
 		xor_salsa8_prefetch(&X[16], &X[0], V, N);
 	}
@@ -1414,6 +1451,7 @@ static inline void neoscrypt_blkswp(void *blkAp, void *blkBp, uint len)
 		blkB[i + 3] = t3;
 	}
 }
+
 
 /* Removed unnecessary steps */
 static inline void scrypt_shuffle(uint32_t B[16])
@@ -1466,20 +1504,16 @@ static inline uint32x4x4_t scrypt_deinterleave_shuffle(uint32x4x4_t B)
 scrypt_core() outperforms this. May aswell remove scrypt_core_1way().
 Not tested for producing valid work nor any likelyhood of performance
 tuning as far I can see. Lacks possibility of dual issue. */
-static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V, uint32_t N)
+static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *V, uint32_t N)
 {
 	uint32_t* W = V;
 
 	scrypt_shuffle(&B[0  + 0]);
 	scrypt_shuffle(&B[16 + 0]);
-/*	scrypt_shuffle(&B[0 + 32]);
-	scrypt_shuffle(&B[16 + 32]);
-	scrypt_shuffle(&B[0 + 64]);
-	scrypt_shuffle(&B[16 + 64]);*/
 
-	uint32x4x2_t q_tmp;
-  	uint32x4x4_t q_a/*, q_b, q_c,*/;
-	uint32x4x4_t x, ba_a,/* bb_a, bc_a,*/ ba_b/*, bb_b, bc_b*/;
+	uint32x4x4_t q_tmp;
+  	uint32x4x4_t q_a;
+	uint32x4x4_t ba_a, ba_b;
 
 	ba_a.val[0] = vld1q_u32(&B[( 0) / 4]);
 	ba_a.val[1] = vld1q_u32(&B[(16) / 4]);
@@ -1491,24 +1525,6 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V
 	ba_b.val[2] = vld1q_u32(&B[(0 + 64 + 32) / 4]);
 	ba_b.val[3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
 	//ba_b = vld4q_u32(&B[16]);
-
-// 	bb_a.val[0] = vld1q_u32(&B[(128 +  0) / 4]);
-// 	bb_a.val[1] = vld1q_u32(&B[(128 + 16) / 4]);
-// 	bb_a.val[2] = vld1q_u32(&B[(128 + 32) / 4]);
-// 	bb_a.val[3] = vld1q_u32(&B[(128 + 48) / 4]);
-// 	bb_b.val[0] = vld1q_u32(&B[(128 + 64 + 0) / 4]);
-// 	bb_b.val[1] = vld1q_u32(&B[(128 + 64 + 16) / 4]);
-// 	bb_b.val[2] = vld1q_u32(&B[(128 + 64 + 32) / 4]);
-// 	bb_b.val[3] = vld1q_u32(&B[(128 + 64 + 48) / 4]);
-	
-// 	bc_a.val[0] = vld1q_u32(&B[(256 + 0) / 4]);
-// 	bc_a.val[1] = vld1q_u32(&B[(256 + 16) / 4]);
-// 	bc_a.val[2] = vld1q_u32(&B[(256 + 32) / 4]);
-// 	bc_a.val[3] = vld1q_u32(&B[(256 + 48) / 4]);
-// 	bc_b.val[0] = vld1q_u32(&B[(256 + 64 + 0) / 4]);
-// 	bc_b.val[1] = vld1q_u32(&B[(256 + 64 + 16) / 4]);
-// 	bc_b.val[2] = vld1q_u32(&B[(256 + 64 + 32) / 4]);
-// 	bc_b.val[3] = vld1q_u32(&B[(256 + 64 + 48) / 4]);
 
 	// prep
 
@@ -1523,177 +1539,73 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V
 	vst1q_u32(&V[(112) / 4], ba_b.val[3]);
 	//vst4q_u32(&V[16], ba_b);
 
-// 	vst1q_u32(&V[(128 +  0) / 4], bb_a.val[0]);
-// 	vst1q_u32(&V[(128 + 16) / 4], bb_a.val[1]);
-// 	vst1q_u32(&V[(128 + 32) / 4], bb_a.val[2]);
-// 	vst1q_u32(&V[(128 + 48) / 4], bb_a.val[3]);
-// 	vst1q_u32(&V[(128 + 64) / 4],  bb_b.val[0]);
-// 	vst1q_u32(&V[(128 + 80) / 4],  bb_b.val[1]);
-// 	vst1q_u32(&V[(128 + 96) / 4],  bb_b.val[2]);
-// 	vst1q_u32(&V[(128 + 112) / 4], bb_b.val[3]);
-
-// 	vst1q_u32(&V[(256 +  0) / 4], bc_a.val[0]);
-// 	vst1q_u32(&V[(256 + 16) / 4], bc_a.val[1]);
-// 	vst1q_u32(&V[(256 + 32) / 4], bc_a.val[2]);
-// 	vst1q_u32(&V[(256 + 48) / 4], bc_a.val[3]);
-// 	vst1q_u32(&V[(256 + 64) / 4], bc_b.val[0]);
-// 	vst1q_u32(&V[(256 + 80) / 4], bc_b.val[1]);
-// 	vst1q_u32(&V[(256 + 96) / 4], bc_b.val[2]);
-// 	vst1q_u32(&V[(256 + 112) / 4],bc_b.val[3]);
-
 //	V += 96; /* Original code for 3ways */
-	V += 32;
+
 
 	for (int n = 0; n < N; n++)
 	{
 		// loop 1 part a
+			vst1q_u32(&V[(     16 + (0 * 4))], ba_b.val[0]);
 		q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
+			vst1q_u32(&V[(     16 + (1 * 4))], ba_b.val[1]);
 		q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
+			vst1q_u32(&V[(     16 + (2 * 4))], ba_b.val[2]);
 		q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
+			vst1q_u32(&V[(     16 + (3 * 4))], ba_b.val[3]);
 		q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
 
-// 		q_b.val[0] = veorq_u32(bb_b.val[0], bb_a.val[0]);
-// 		q_b.val[1] = veorq_u32(bb_b.val[1], bb_a.val[1]);
-// 		q_b.val[2] = veorq_u32(bb_b.val[2], bb_a.val[2]);
-// 		q_b.val[3] = veorq_u32(bb_b.val[3], bb_a.val[3]);
-
-// 		q_c.val[0] = veorq_u32(bc_b.val[0], bc_a.val[0]);
-// 		q_c.val[1] = veorq_u32(bc_b.val[1], bc_a.val[1]);
-// 		q_c.val[2] = veorq_u32(bc_b.val[2], bc_a.val[2]);
-// 		q_c.val[3] = veorq_u32(bc_b.val[3], bc_a.val[3]);
-
+		V += 32;
 		ba_a = q_a;
-// 		bb_a = q_b;
-// 		bc_a = q_c;
 
 		for (int i = 0; i < 4; i ++)
 		{
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 			
- 
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
-			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
 			
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
+			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
- 
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
- 
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
 		}
 		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
 		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
@@ -1702,217 +1614,79 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V
 
 		q_a = ba_a;
 
-// 		bb_a.val[0] = vaddq_u32(bb_a.val[0], q_b.val[0]);
-// 		bb_a.val[1] = vaddq_u32(bb_a.val[1], q_b.val[1]);
-// 		bb_a.val[2] = vaddq_u32(bb_a.val[2], q_b.val[2]);
-// 		bb_a.val[3] = vaddq_u32(bb_a.val[3], q_b.val[3]);
-
-// 		q_b = bb_a;
-
-// 		bc_a.val[0] = vaddq_u32(bc_a.val[0], q_c.val[0]);
-// 		bc_a.val[1] = vaddq_u32(bc_a.val[1], q_c.val[1]);
-// 		bc_a.val[2] = vaddq_u32(bc_a.val[2], q_c.val[2]);
-// 		bc_a.val[3] = vaddq_u32(bc_a.val[3], q_c.val[3]);
-
-// 		q_c = bc_a;
-		
-		/*for (int i = 0; i < 4; i++)
-		{
-			vst1q_u32(&V[      (i * 4) ], ba_a.val[i]);
-// 			vst1q_u32(&V[(32 + (i * 4))], bb_a.val[i]);
-// 			vst1q_u32(&V[(64 + (i * 4))], bc_a.val[i]);
-		}*/
-
-			vst1q_u32(&V[      (0 * 4) ], ba_a.val[0]);
-			vst1q_u32(&V[      (1 * 4) ], ba_a.val[1]);
-			vst1q_u32(&V[      (2 * 4) ], ba_a.val[2]);
-			vst1q_u32(&V[      (3 * 4) ], ba_a.val[3]);
-
-
 		// loop 1 part b
-
+			vst1q_u32(&V[      (0 * 4) ], ba_a.val[0]);
 		q_a.val[0] = veorq_u32(ba_b.val[0], q_a.val[0]);
+			vst1q_u32(&V[      (1 * 4) ], ba_a.val[1]);
 		q_a.val[1] = veorq_u32(ba_b.val[1], q_a.val[1]);
+			vst1q_u32(&V[      (2 * 4) ], ba_a.val[2]);
 		q_a.val[2] = veorq_u32(ba_b.val[2], q_a.val[2]);
+			vst1q_u32(&V[      (3 * 4) ], ba_a.val[3]);
 		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
 		ba_b = q_a;
 
-// 		q_b.val[0] = veorq_u32(bb_b.val[0], q_b.val[0]);
-// 		q_b.val[1] = veorq_u32(bb_b.val[1], q_b.val[1]);
-// 		q_b.val[2] = veorq_u32(bb_b.val[2], q_b.val[2]);
-// 		q_b.val[3] = veorq_u32(bb_b.val[3], q_b.val[3]);
-// 		bb_b = q_b;
-
-// 		q_c.val[0] = veorq_u32(bc_b.val[0], q_c.val[0]);
-// 		q_c.val[1] = veorq_u32(bc_b.val[1], q_c.val[1]);
-// 		q_c.val[2] = veorq_u32(bc_b.val[2], q_c.val[2]);
-// 		q_c.val[3] = veorq_u32(bc_b.val[3], q_c.val[3]);
-// 		bc_b = q_c;
-
-
 		for (int i = 0; i < 4; i ++)
 		{
+
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 			
- 
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
-			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
 			
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
 			
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
- 
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
- 
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
- 
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
 		}
 
 		ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
 		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
 		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
-		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]);
-// 		bb_b.val[0] = vaddq_u32(q_b.val[0], bb_b.val[0]);
-// 		bb_b.val[1] = vaddq_u32(q_b.val[1], bb_b.val[1]);
-// 		bb_b.val[2] = vaddq_u32(q_b.val[2], bb_b.val[2]);
-// 		bb_b.val[3] = vaddq_u32(q_b.val[3], bb_b.val[3]);
-// 		bc_b.val[0] = vaddq_u32(q_c.val[0], bc_b.val[0]);
-// 		bc_b.val[1] = vaddq_u32(q_c.val[1], bc_b.val[1]);
-// 		bc_b.val[2] = vaddq_u32(q_c.val[2], bc_b.val[2]);
-// 		bc_b.val[3] = vaddq_u32(q_c.val[3], bc_b.val[3]);
-		for (int i = 0; i < 4; i++)
-		{
-			vst1q_u32(&V[(     16 + (i * 4))], ba_b.val[i]);
-// 			vst1q_u32(&V[(32 + 16 + (i * 4))], bb_b.val[i]);
-// 			vst1q_u32(&V[(64 + 16 + (i * 4))], bc_b.val[i]);
-		}
-//		V += 96; /* Original code for scrypt_core_3ways() */
-		V += 32;
+		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]); 
 	}
 	V = W;
 
     // loop 2
 
-//	uint32_t one =   32 * (3 * (ba_b.val[0][0] & (N - 1)) + 0); /* Original code for 3ways */
-//	uint32_t two =   32 * (3 * (bb_b.val[0][0] & (N - 1)) + 1); /* Original code for 3ways */
-// 	uint32_t three = 32 * (3 * (bc_b.val[0][0] & (N - 1)) + 2); /* Original code for 3ways */
-
 	uint32_t one =   32 * (1 * (ba_b.val[0][0] & (N - 1)) + 0);
-// 	uint32_t two =   32 * (2 * (bb_b.val[0][0] & (N - 1)) + 1);
-// 	uint32_t three = 32 * (3 * (bc_b.val[0][0] & (N - 1)) + 2);
 	q_tmp.val[0] = vld1q_u32(&W[one +  0]);
 	q_tmp.val[1] = vld1q_u32(&W[one +  4]);
 	q_tmp.val[2] = vld1q_u32(&W[one +  8]);
@@ -1923,200 +1697,75 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V
 		// loop 2 part a
 
 		ba_a.val[0] = veorq_u32(ba_a.val[0], q_tmp.val[0]);
-			//q_tmp.val[0] = vld1q_u32(&W[one + 16 +  0]);
+			q_tmp.val[0] = vld1q_u32(&W[one + 16 +  0]);
 		ba_a.val[1] = veorq_u32(ba_a.val[1], q_tmp.val[1]);
-			//q_tmp.val[1] = vld1q_u32(&W[one + 16 +  4]);
+			q_tmp.val[1] = vld1q_u32(&W[one + 16 +  4]);
 		ba_a.val[2] = veorq_u32(ba_a.val[2], q_tmp.val[2]);
-			//q_tmp.val[2] = vld1q_u32(&W[one + 16 +  8]);
+			q_tmp.val[2] = vld1q_u32(&W[one + 16 +  8]);
 		ba_a.val[3] = veorq_u32(ba_a.val[3], q_tmp.val[3]);
-
-		q_tmp.val[0] = vld1q_u32(&W[one + 16 +  0]);
-		q_tmp.val[1] = vld1q_u32(&W[one + 16 +  4]);
-		q_tmp.val[2] = vld1q_u32(&W[one + 16 +  8]);
 		q_tmp.val[3] = vld1q_u32(&W[one + 16 + 12]);
 
 			ba_b.val[0] = veorq_u32(ba_b.val[0], q_tmp.val[0]);
 			ba_b.val[1] = veorq_u32(ba_b.val[1], q_tmp.val[1]);
-			//q_tmp.val[3] = vld1q_u32(&W[one + 16 + 12]);
 			ba_b.val[2] = veorq_u32(ba_b.val[2], q_tmp.val[2]);
 			ba_b.val[3] = veorq_u32(ba_b.val[3], q_tmp.val[3]);
-// 		q_tmp.val[0] = vld1q_u32(&W[two +  0]);
+
 				q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
 				q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
-// 		q_tmp.val[1] = vld1q_u32(&W[two +  4]);
 				q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
 				q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
-// 		q_tmp.val[2] = vld1q_u32(&W[two +  8]);
 		ba_a = q_a;
-
-// 		q_tmp.val[3] = vld1q_u32(&W[two + 12]);
-
-// 		bb_a.val[0] = veorq_u32(bb_a.val[0], q_tmp.val[0]);
-// 			q_tmp.val[0] = vld1q_u32(&W[two + 16 +  0]);
-// 		bb_a.val[1] = veorq_u32(bb_a.val[1], q_tmp.val[1]);
-// 			q_tmp.val[1] = vld1q_u32(&W[two + 16 +  4]);
-// 		bb_a.val[2] = veorq_u32(bb_a.val[2], q_tmp.val[2]);
-// 			q_tmp.val[2] = vld1q_u32(&W[two + 16 +  8]);
-// 		bb_a.val[3] = veorq_u32(bb_a.val[3], q_tmp.val[3]);
-// 			bb_b.val[0] = veorq_u32(bb_b.val[0], q_tmp.val[0]);
-// 			q_tmp.val[3] = vld1q_u32(&W[two + 16 + 12]);
-// 			bb_b.val[1] = veorq_u32(bb_b.val[1], q_tmp.val[1]);
-// 		q_tmp.val[0] = vld1q_u32(&W[three +  0]);
-// 			bb_b.val[2] = veorq_u32(bb_b.val[2], q_tmp.val[2]);
-// 			bb_b.val[3] = veorq_u32(bb_b.val[3], q_tmp.val[3]);
-// 		q_tmp.val[1] = vld1q_u32(&W[three +  4]);
-// 				q_b.val[0] = veorq_u32(bb_b.val[0], bb_a.val[0]);
-// 				q_b.val[1] = veorq_u32(bb_b.val[1], bb_a.val[1]);
-// 		q_tmp.val[2] = vld1q_u32(&W[three +  8]);
-// 				q_b.val[2] = veorq_u32(bb_b.val[2], bb_a.val[2]);
-// 				q_b.val[3] = veorq_u32(bb_b.val[3], bb_a.val[3]);
-// 		q_tmp.val[3] = vld1q_u32(&W[three + 12]);
-// 		bb_a = q_b;
-
-// 		bc_a.val[0] = veorq_u32(bc_a.val[0], q_tmp.val[0]);
-// 			q_tmp.val[0] = vld1q_u32(&W[three + 16 +  0]);
-// 		bc_a.val[1] = veorq_u32(bc_a.val[1], q_tmp.val[1]);
-// 			q_tmp.val[1] = vld1q_u32(&W[three + 16 +  4]);
-// 		bc_a.val[2] = veorq_u32(bc_a.val[2], q_tmp.val[2]);
-// 			q_tmp.val[2] = vld1q_u32(&W[three + 16 +  8]);
-// 		bc_a.val[3] = veorq_u32(bc_a.val[3], q_tmp.val[3]);
-// 			bc_b.val[0] = veorq_u32(bc_b.val[0], q_tmp.val[0]);
-// 			q_tmp.val[3] = vld1q_u32(&W[three + 16 + 12]);
-// 			bc_b.val[1] = veorq_u32(bc_b.val[1], q_tmp.val[1]);
-// 			bc_b.val[2] = veorq_u32(bc_b.val[2], q_tmp.val[2]);
-// 			bc_b.val[3] = veorq_u32(bc_b.val[3], q_tmp.val[3]);
-// 				q_c.val[0] = veorq_u32(bc_b.val[0], bc_a.val[0]);
-// 				q_c.val[1] = veorq_u32(bc_b.val[1], bc_a.val[1]);
-// 				q_c.val[2] = veorq_u32(bc_b.val[2], bc_a.val[2]);
-// 				q_c.val[3] = veorq_u32(bc_b.val[3], bc_a.val[3]);
-// 		bc_a = q_c;
 
 		for (int i = 0; i < 4; i++)
 		{
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 			
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			
+			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
-			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
-			
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
 			
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
- 
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
+			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+
 		}
 		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
 		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
@@ -2124,18 +1773,6 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V
 		ba_a.val[3] = vaddq_u32(ba_a.val[3], q_a.val[3]);
 
 		q_a = ba_a;
-
-// 		bb_a.val[0] = vaddq_u32(bb_a.val[0], q_b.val[0]);
-// 		bb_a.val[1] = vaddq_u32(bb_a.val[1], q_b.val[1]);
-// 		bb_a.val[2] = vaddq_u32(bb_a.val[2], q_b.val[2]);
-// 		bb_a.val[3] = vaddq_u32(bb_a.val[3], q_b.val[3]);
-// 		q_b = bb_a;
-
-// 		bc_a.val[0] = vaddq_u32(bc_a.val[0], q_c.val[0]);
-// 		bc_a.val[1] = vaddq_u32(bc_a.val[1], q_c.val[1]);
-// 		bc_a.val[2] = vaddq_u32(bc_a.val[2], q_c.val[2]);
-// 		bc_a.val[3] = vaddq_u32(bc_a.val[3], q_c.val[3]);
-// 		q_c = bc_a;
 
 		// loop 2 b
 
@@ -2145,311 +1782,120 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V
 		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
 		ba_b = q_a;
 
-// 		q_b.val[0] = veorq_u32(bb_b.val[0], q_b.val[0]);
-// 		q_b.val[1] = veorq_u32(bb_b.val[1], q_b.val[1]);
-// 		q_b.val[2] = veorq_u32(bb_b.val[2], q_b.val[2]);
-// 		q_b.val[3] = veorq_u32(bb_b.val[3], q_b.val[3]);
-// 		bb_b = q_b;
-
-// 		q_c.val[0] = veorq_u32(bc_b.val[0], q_c.val[0]);
-// 		q_c.val[1] = veorq_u32(bc_b.val[1], q_c.val[1]);
-// 		q_c.val[2] = veorq_u32(bc_b.val[2], q_c.val[2]);
-// 		q_c.val[3] = veorq_u32(bc_b.val[3], q_c.val[3]);
-// 		bc_b = q_c;
-
 		for (int i = 0; i < 3; i++)
 		{
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 			
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			
+			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
-			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
-			
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
 			
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+
+			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
 		}
 		{
-			//1
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			//2
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
-			//3
+
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
 			
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			
+			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
-			//4
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
-			
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-			//5
+			
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-// 			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-// 			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
-			//6
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-// 			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-// 			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
-			//7
+
+			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
+			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-// 			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-// 			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-// 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-// 			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
 
-			//8
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-// 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
+			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
+			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
 				ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-//					one =	32 * (3 * (ba_b.val[0][0] & (N - 1)) + 0); /* original code for 3ways*/
 					one =	32 * (1 * (ba_b.val[0][0] & (N - 1)) + 0);
 					__builtin_prefetch(&W[one + 0]);
 					__builtin_prefetch(&W[one + 8]);
 					__builtin_prefetch(&W[one + 16]);
 					__builtin_prefetch(&W[one + 24]);
-			
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-// 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-// 			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-// 			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-// 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-// 			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-// 				bb_b.val[0] = vaddq_u32(q_b.val[0], bb_b.val[0]);
-//					two =	32 * (3 * (bb_b.val[0][0] & (N - 1)) + 1); /* original code for 3ways*/
-// 					two =	32 * (2 * (bb_b.val[0][0] & (N - 1)) + 1);
-// 					__builtin_prefetch(&W[two + 0]);
-// 					__builtin_prefetch(&W[two + 8]);
-// 					__builtin_prefetch(&W[two + 16]);
-// 					__builtin_prefetch(&W[two + 24]);
 
-// 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-// 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
+			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
+			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-// 			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-// 			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
-// 				bc_b.val[0] = vaddq_u32(q_c.val[0], bc_b.val[0]);
-// 					three = 32 * (3 * (bc_b.val[0][0] & (N - 1)) + 2);
-// 					__builtin_prefetch(&W[three + 0]);
-// 					__builtin_prefetch(&W[three + 8]);
-// 					__builtin_prefetch(&W[three + 16]);
-// 					__builtin_prefetch(&W[three + 24]);
+
 		}
 
 		q_tmp.val[0] = vld1q_u32(&W[one +  0]);
-		q_tmp.val[1] = vld1q_u32(&W[one +  4]);
-		q_tmp.val[2] = vld1q_u32(&W[one +  8]);
-		q_tmp.val[3] = vld1q_u32(&W[one + 12]);
 		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
+		q_tmp.val[1] = vld1q_u32(&W[one +  4]);
 		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
+		q_tmp.val[2] = vld1q_u32(&W[one +  8]);
 		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]);
-
-// 		bb_b.val[1] = vaddq_u32(q_b.val[1], bb_b.val[1]);
-// 		bb_b.val[2] = vaddq_u32(q_b.val[2], bb_b.val[2]);
-// 		bb_b.val[3] = vaddq_u32(q_b.val[3], bb_b.val[3]);
-
-// 		bc_b.val[1] = vaddq_u32(q_c.val[1], bc_b.val[1]);
-// 		bc_b.val[2] = vaddq_u32(q_c.val[2], bc_b.val[2]);
-// 		bc_b.val[3] = vaddq_u32(q_c.val[3], bc_b.val[3]);
-
+		q_tmp.val[3] = vld1q_u32(&W[one + 12]);
 	}
 
 	vst1q_u32(&B[0],       ba_a.val[0]);
@@ -2461,30 +1907,8 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *__restrict__ V
 	vst1q_u32(&B[16 + 8],  ba_b.val[2]);
 	vst1q_u32(&B[16 + 12], ba_b.val[3]);
 
-// 	vst1q_u32(&B[32 + 0],  		bb_a.val[0]);
-// 	vst1q_u32(&B[32 + 4],  		bb_a.val[1]);
-// 	vst1q_u32(&B[32 + 8],  		bb_a.val[2]);
-// 	vst1q_u32(&B[32 + 12], 		bb_a.val[3]);
-// 	vst1q_u32(&B[32 + 16 + 0],  bb_b.val[0]);
-// 	vst1q_u32(&B[32 + 16 + 4],  bb_b.val[1]);
-// 	vst1q_u32(&B[32 + 16 + 8],  bb_b.val[2]);
-// 	vst1q_u32(&B[32 + 16 + 12], bb_b.val[3]);
-
-// 	vst1q_u32(&B[64 + 0],  		bc_a.val[0]);
-// 	vst1q_u32(&B[64 + 4],  		bc_a.val[1]);
-// 	vst1q_u32(&B[64 + 8],  		bc_a.val[2]);
-// 	vst1q_u32(&B[64 + 12], 		bc_a.val[3]);
-// 	vst1q_u32(&B[64 + 16 + 0],  bc_b.val[0]);
-// 	vst1q_u32(&B[64 + 16 + 4],  bc_b.val[1]);
-// 	vst1q_u32(&B[64 + 16 + 8],  bc_b.val[2]);
-// 	vst1q_u32(&B[64 + 16 + 12], bc_b.val[3]);
-
 	scrypt_shuffle(&B[0  + 0]);
 	scrypt_shuffle(&B[16 + 0]);
-//	scrypt_shuffle(&B[0 + 32]);
-//	scrypt_shuffle(&B[16 + 32]);
-//	scrypt_shuffle(&B[0 + 64]);
-//	scrypt_shuffle(&B[16 + 64]);
 }
 
 // Used with vld4/str4 to compensate for their interleaved load/stores.
@@ -2539,8 +1963,8 @@ using checks. fireworm71 believes peak performance has been reached - cache and 
 */
 // try prohibit loop unrolling loops for 2ways
 #pragma GCC push_options
-#pragma GCC optimize ("no-unroll-loops")
-static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V, uint32_t N)
+#pragma GCC optimize ("unroll-all-loops")
+static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *V, uint32_t N)
 {
 	uint32_t* W __attribute__((__aligned__(16))) = __builtin_assume_aligned (V, 16);
 /*
@@ -2581,9 +2005,13 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 	ba_b.val[3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
 
 	bb_a.val[0] = vld1q_u32(&B[(128 +  0) / 4]);
+	vst1q_u32(&V[( 0) / 4], ba_a.val[0]);
 	bb_a.val[1] = vld1q_u32(&B[(128 + 16) / 4]);
+	vst1q_u32(&V[(16) / 4], ba_a.val[1]);
 	bb_a.val[2] = vld1q_u32(&B[(128 + 32) / 4]);
+	vst1q_u32(&V[(32) / 4], ba_a.val[2]);
 	bb_a.val[3] = vld1q_u32(&B[(128 + 48) / 4]);
+	vst1q_u32(&V[(48) / 4], ba_a.val[3]);
 
 	//ba_a = vld4q_u32(&B[( 0) / 4]); //experimented with alternative load
 	//ba_b = vld4q_u32(&B[(0 + 64 + 0) / 4]); //experimented with alternative load
@@ -2591,9 +2019,13 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 	//bb_b = vld4q_u32(&B[(128 + 64 + 0) / 4]); //experimented with alternative load
 
 	bb_b.val[0] = vld1q_u32(&B[(128 + 64 + 0) / 4]);
+  	vst1q_u32(&V[(128 +  0) / 4], bb_a.val[0]);
 	bb_b.val[1] = vld1q_u32(&B[(128 + 64 + 16) / 4]);
+  	vst1q_u32(&V[(128 + 16) / 4], bb_a.val[1]);
 	bb_b.val[2] = vld1q_u32(&B[(128 + 64 + 32) / 4]);
+  	vst1q_u32(&V[(128 + 32) / 4], bb_a.val[2]);
 	bb_b.val[3] = vld1q_u32(&B[(128 + 64 + 48) / 4]);
+  	vst1q_u32(&V[(128 + 48) / 4], bb_a.val[3]);
  
 	//vst4q_u32(&V[( 0) / 4], ba_a); //experimented with alternative store
 	//vst4q_u32(&V[(64) / 4], ba_b); //experimented with alternative store
@@ -2601,25 +2033,25 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 	//vst4q_u32(&V[(128 + 64) / 4], bb_b); //experimented with alternative store
 
 	// prep
-	vst1q_u32(&V[( 0) / 4], ba_a.val[0]);
-	vst1q_u32(&V[(16) / 4], ba_a.val[1]);
-	vst1q_u32(&V[(32) / 4], ba_a.val[2]);
-	vst1q_u32(&V[(48) / 4], ba_a.val[3]);
+ 
+ 
+ 
+ 
 
-  	vst1q_u32(&V[(64) / 4],  ba_b.val[0]);
+/*  	vst1q_u32(&V[(64) / 4],  ba_b.val[0]);
   	vst1q_u32(&V[(80) / 4],  ba_b.val[1]);
   	vst1q_u32(&V[(96) / 4],  ba_b.val[2]);
-  	vst1q_u32(&V[(112) / 4], ba_b.val[3]);
+  	vst1q_u32(&V[(112) / 4], ba_b.val[3]);*/
 
- 	vst1q_u32(&V[(128 +  0) / 4], bb_a.val[0]);
- 	vst1q_u32(&V[(128 + 16) / 4], bb_a.val[1]);
- 	vst1q_u32(&V[(128 + 32) / 4], bb_a.val[2]);
- 	vst1q_u32(&V[(128 + 48) / 4], bb_a.val[3]);
+ 
+ 
+ 
+ 
 
-	vst1q_u32(&V[(128 + 64) / 4],  bb_b.val[0]);
+/*	vst1q_u32(&V[(128 + 64) / 4],  bb_b.val[0]);
 	vst1q_u32(&V[(128 + 80) / 4],  bb_b.val[1]);
 	vst1q_u32(&V[(128 + 96) / 4],  bb_b.val[2]);
-	vst1q_u32(&V[(128 + 112) / 4], bb_b.val[3]);
+	vst1q_u32(&V[(128 + 112) / 4], bb_b.val[3]);*/
 
 	for (int n = 0; n < N; n++)
 	{
@@ -2641,6 +2073,7 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 		vst1q_u32(&V[(32 + 16 + (3 * 4))], bb_b.val[3]);
 		q_b.val[3] = veorq_u32(bb_b.val[3], bb_a.val[3]);
 
+
 		ba_a = q_a;
 		bb_a = q_b;
 		//increments scratchpad pointer
@@ -2649,11 +2082,11 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 		for (int i = 0; i < 4; i ++)
 		{
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
+			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);
+			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);	
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -2661,8 +2094,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
@@ -2670,8 +2103,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 			
@@ -2683,20 +2116,20 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
-			
+ 
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
 			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			
+
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 
@@ -2704,8 +2137,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);;
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
@@ -2713,8 +2146,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -2722,8 +2155,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 
@@ -2781,11 +2214,11 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 		for (int i = 0; i < 4; i ++)
 		{
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);	
+			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);	
+			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);	
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);	
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -2793,17 +2226,17 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
 			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);	
+			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 			
@@ -2811,8 +2244,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 			
@@ -2827,8 +2260,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 
@@ -2836,8 +2269,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
@@ -2845,8 +2278,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -2854,11 +2287,11 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+
 			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
 			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
 			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
@@ -2916,13 +2349,14 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 
 		q_tmp.val[0] = vld1q_u32(&W[two +  0]);
 				q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
-				q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
 		q_tmp.val[1] = vld1q_u32(&W[two +  4]);
+				q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
+ 		q_tmp.val[2] = vld1q_u32(&W[two +  8]);
 				q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
-				q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
-		q_tmp.val[2] = vld1q_u32(&W[two +  8]);
-
 		q_tmp.val[3] = vld1q_u32(&W[two + 12]);
+				q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
+		 
+
 		// q_tmp = vld4q_u32(&W[two +  0]); //experimented with alternative load
 		bb_a.val[0] = veorq_u32(bb_a.val[0], q_tmp.val[0]);
 			q_tmp.val[0] = vld1q_u32(&W[two + 16 +  0]);
@@ -2952,8 +2386,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);	
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);	
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -2961,8 +2395,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
@@ -2970,8 +2404,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 			
@@ -2979,8 +2413,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 			
@@ -2995,8 +2429,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 
@@ -3004,8 +2438,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
@@ -3013,8 +2447,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -3022,8 +2456,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 
@@ -3067,8 +2501,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -3076,8 +2510,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
@@ -3085,8 +2519,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 			
@@ -3094,24 +2528,24 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 			
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
+			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
+			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
+			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
+			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
+			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
 			
 			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);;
 
@@ -3119,8 +2553,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 
@@ -3128,8 +2562,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 
@@ -3137,8 +2571,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 
@@ -3155,8 +2589,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 			//2
@@ -3164,8 +2598,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 			//3
@@ -3173,8 +2607,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 			//4
@@ -3182,8 +2616,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
 			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 			
@@ -3198,8 +2632,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
 			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
 			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
 			//6
@@ -3207,8 +2641,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
 			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
 			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
 			//7
@@ -3216,8 +2650,8 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *__restrict__ V
 			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
 			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
 			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
+			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
 			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
 			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
 			//8
@@ -4431,14 +3865,20 @@ static inline void xor_salsa8_prefetch(uint32_t B[16], const uint32_t Bx[16], ui
 	B[15] += x15;
 }
 
-static inline void scrypt_core(uint32_t *__restrict__ X, uint32_t *__restrict__ V, int N)
+static inline void memcpy128(void* __restrict b, const void* __restrict a){
+    uint32x4_t *s1 = b;
+    const uint32x4_t *s2 = a;
+    *s1++ = *s2++; *s1++ = *s2++; *s1++ = *s2++; *s1++ = *s2++; *s1++ = *s2++; *s1++ = *s2++; *s1++ = *s2++; *s1++ = *s2++;
+}
+
+static inline void scrypt_core(uint32_t *X, uint32_t *V, int N)
 {
 	int i;
 
 	for (i = 0; i < N; i++) {
-		newmemcpy(&V[i * 32], X, 128);
+		memcpy128(&V[i * 32], X);
 		xor_salsa8(&X[0], &X[16]);
-		xor_salsa8_prefetch(&X[16], &X[0], V, N);
+		xor_salsa8(&X[16], &X[0]);
 	}
 	for (i = 0; i < N; i++) {
 		uint32_t j = 32 * (X[16] & (N - 1));
@@ -4599,8 +4039,8 @@ unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
 #endif
 }
 
-static void scrypt_1024_1_1_256(const uint32_t *__restrict__ input, uint32_t *__restrict__ output,
-	uint32_t *__restrict__ midstate, unsigned char *__restrict__ scratchpad, int N)
+static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
+	uint32_t *midstate, unsigned char *scratchpad, int N)
 {
 	uint32_t tstate[8] __attribute__((__aligned__(16))), ostate[8] __attribute__((__aligned__(16)));
 	uint32_t X[32] __attribute__((__aligned__(16)));
@@ -4609,12 +4049,13 @@ static void scrypt_1024_1_1_256(const uint32_t *__restrict__ input, uint32_t *__
 	V = (uint32_t *)(((uintptr_t)(__builtin_assume_aligned (scratchpad, 16)) + 63) & ~ (uintptr_t)(63));
 
 	newmemcpy(tstate, midstate, 32);
-	HMAC_SHA256_80_init_armv8_noinline(input, tstate, ostate);
+	HMAC_SHA256_80_init_armv8(input, tstate, ostate, 1);
+
 	PBKDF2_SHA256_80_128_armv8(tstate, ostate, input, X);
 
 	scrypt_core(X, V, N);
 
-	PBKDF2_SHA256_128_32_armv8(tstate, ostate, X, output);
+	PBKDF2_SHA256_128_32_armv8(tstate, ostate, X, output, 1);
 }
 
 #ifdef HAVE_SHA256_4WAY
@@ -4657,8 +4098,8 @@ static void scrypt_1024_1_1_256_4way(const uint32_t *input,
 
 #ifdef HAVE_SCRYPT_2WAY
 
-static void scrypt_1024_1_1_256_2way(const uint32_t *__restrict__ input,
-	uint32_t *__restrict__ output, uint32_t *__restrict__ midstate, unsigned char *__restrict__ scratchpad, int N)
+static void scrypt_1024_1_1_256_2way(const uint32_t *input,
+	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N)
 {
 	uint32_t tstate[2 * 8] __attribute__((__aligned__(16))), ostate[2 * 8] __attribute__((__aligned__(16)));
 	uint32_t X[2 * 32] __attribute__((__aligned__(16)));
@@ -4668,15 +4109,15 @@ static void scrypt_1024_1_1_256_2way(const uint32_t *__restrict__ input,
 
 	newmemcpy(tstate +  0, midstate, 32);
 	newmemcpy(tstate +  8, midstate, 32);
-	HMAC_SHA256_80_init_armv8(input +  0, tstate +  0, ostate +  0);
-	HMAC_SHA256_80_init_armv8(input + 20, tstate +  8, ostate +  8);
+	HMAC_SHA256_80_init_armv8(input, tstate, ostate, 2);
+	//HMAC_SHA256_80_init_armv8(input + 20, tstate +  8, ostate +  8);
 	PBKDF2_SHA256_80_128_armv8(tstate +  0, ostate +  0, input +  0, X +  0);
 	PBKDF2_SHA256_80_128_armv8(tstate +  8, ostate +  8, input + 20, X + 32);
 
 	scrypt_core_2way(X, V, N);
 
-	PBKDF2_SHA256_128_32_armv8(tstate +  0, ostate +  0, X +  0, output +  0);
-	PBKDF2_SHA256_128_32_armv8(tstate +  8, ostate +  8, X + 32, output +  8);
+	PBKDF2_SHA256_128_32_armv8(tstate +  0, ostate +  0, X +  0, output +  0, 2);
+	//PBKDF2_SHA256_128_32_armv8(tstate +  8, ostate +  8, X + 32, output +  8);
 }
 
 #endif /* HAVE_SCRYPT_2WAY */
@@ -4841,8 +4282,8 @@ extern int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, ui
 	for (i = 0; i < throughput; i++)
 		newmemcpy(data + i * 20, pdata, 80);
 	
-	sha256_init_armv8(midstate);
-	sha256_transform_armv8(midstate, data, 0);
+	//sha256_init_armv8(midstate);
+	sha256_transform_armv8_init(midstate, data);
 	
 	do {
 		for (i = 0; i < throughput; i++)
@@ -4900,8 +4341,8 @@ void scrypthash(void *output, const void *input, uint32_t N)
 	if (!scratchbuf)
 		return;
 
-	sha256_init_armv8(midstate);
-	sha256_transform_armv8(midstate, input, 0);
+	//sha256_init_armv8(midstate);
+	sha256_transform_armv8_init(midstate, input);
 
 	scrypt_1024_1_1_256((uint32_t*)input, (uint32_t*)output, midstate, scratchbuf, N);
 
