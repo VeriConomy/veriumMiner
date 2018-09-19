@@ -1168,74 +1168,112 @@ static void inline xor_salsa8(uint32_t * __restrict B, const uint32_t * __restri
 }
 
 /*
-  Struct offers better performance for some reason. Fully unrolled loop.
+  Split loop offers better performance for some reason.
 */
-static inline void salsa20_block_prefetch(uint32_t *B, const uint32_t *Bx, uint32_t * __restrict V)
+static inline void xor_salsa8_prefetch(uint32_t *B, const uint32_t *Bx, uint32_t * __restrict V)
 {
-
-	struct XX
-	{
-		uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
-	} X;
+	register uint32_t x15,x14,x13,x12,x11,x10,x09,x08,x07,x06,x05,x04,x03,x02,x01,x00;
+	register int i;
 
 	salsa8eqxorload64(B,Bx);
 
-	salsa8load64(&X.x00,B);
+	x00 = B[ 0];
+	x01 = B[ 1];
+	x02 = B[ 2];
+	x03 = B[ 3];
+	x04 = B[ 4];
+	x05 = B[ 5];
+	x06 = B[ 6];
+	x07 = B[ 7];
+	x08 = B[ 8];
+	x09 = B[ 9];
+	x10 = B[10];
+	x11 = B[11];
+	x12 = B[12];
+	x13 = B[13];
+	x14 = B[14];
+	x15 = B[15];
 
-#define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
-#define QR(a, b, c, d)(		\
-	b ^= ROTL(a + d, 7),	\
-	c ^= ROTL(b + a, 9),	\
-	d ^= ROTL(c + b,13),	\
-	a ^= ROTL(d + c,18))
-		// Odd round
-		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
-		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
-		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
-		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
-		// Even round
-		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
-		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
-		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
-		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
-		// Odd round
-		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
-		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
-		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
-		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
-		// Even round
-		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
-		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
-		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
-		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
-		// Odd round
-		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
-		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
-		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
-		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
-		// Even round
-		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
-		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
-		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
-		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
-		// Odd round
-		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
-		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
-		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
-		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
-		// Even round
-		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
-		int one = 32 * ((B[0] + X.x00) & 1048575);
-		__builtin_prefetch(&V[one]);
-		__builtin_prefetch(&V[one + 8]);
-		__builtin_prefetch(&V[one + 16]);
-		__builtin_prefetch(&V[one + 24]);
-		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
-		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
-		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
-#undef ROTL
-#undef QR
-	salsa8addsave64(B,&X.x00);
+#define R(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
+	for (i = 0; i < 2; i++) {
+
+		/* Operate on columns. */
+		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
+		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
+		
+		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
+		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
+		
+		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
+		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
+		
+		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
+		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
+		
+		/* Operate on rows. */
+		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
+		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
+		
+		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
+		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
+		
+		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
+		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
+		
+		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
+		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
+}
+for (; i < 4; i++) {
+		/* Operate on columns. */
+		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
+		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
+		
+		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
+		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
+		
+		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
+		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
+		
+		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
+		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
+		
+		/* Operate on rows. */
+		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
+		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
+		
+		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
+		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
+		
+		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
+		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
+		
+		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
+		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
+}
+#undef R
+
+	B[ 0] += x00;
+	int one = 32 * (B[0] & 1048575);
+	__builtin_prefetch(&V[one]);
+	__builtin_prefetch(&V[one + 8]);
+	__builtin_prefetch(&V[one + 16]);
+	__builtin_prefetch(&V[one + 24]);
+	asm("":::"memory");
+	B[ 1] += x01;
+	B[ 2] += x02;
+	B[ 3] += x03;
+	B[ 4] += x04;
+	B[ 5] += x05;
+	B[ 6] += x06;
+	B[ 7] += x07;
+	B[ 8] += x08;
+	B[ 9] += x09;
+	B[10] += x10;
+	B[11] += x11;
+	B[12] += x12;
+	B[13] += x13;
+	B[14] += x14;
+	B[15] += x15;
 }
 
 /*
@@ -1278,7 +1316,7 @@ static inline void scrypt_core(uint32_t * __restrict X, uint32_t * __restrict V/
 			X[k] ^= V[j + k];*/
 		eqxorload64(X,&V[j]);
 		salsa20_block(&X[0], &X[16]);
-		salsa20_block_prefetch(&X[16], &X[0], V);
+		xor_salsa8_prefetch(&X[16], &X[0], V);
 	}
 }
 
