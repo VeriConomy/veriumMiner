@@ -1168,112 +1168,116 @@ static void inline xor_salsa8(uint32_t * __restrict B, const uint32_t * __restri
 }
 
 /*
-  Split loop offers better performance for some reason.
+  Split loop and struct offers better performance for some reason.
 */
 static inline void xor_salsa8_prefetch(uint32_t *B, const uint32_t *Bx, uint32_t * __restrict V)
 {
-	register uint32_t x15,x14,x13,x12,x11,x10,x09,x08,x07,x06,x05,x04,x03,x02,x01,x00;
+	//register uint32_t x15,x14,x13,x12,x11,x10,x09,x08,x07,x06,x05,x04,x03,x02,x01,x00;
 	register int i;
+
+	struct XX
+	{
+		uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
+	} X;
 
 	salsa8eqxorload64(B,Bx);
 
-	x00 = B[ 0];
-	x01 = B[ 1];
-	x02 = B[ 2];
-	x03 = B[ 3];
-	x04 = B[ 4];
-	x05 = B[ 5];
-	x06 = B[ 6];
-	x07 = B[ 7];
-	x08 = B[ 8];
-	x09 = B[ 9];
-	x10 = B[10];
-	x11 = B[11];
-	x12 = B[12];
-	x13 = B[13];
-	x14 = B[14];
-	x15 = B[15];
+	X.x00 = B[ 0];
+	X.x01 = B[ 1];
+	X.x02 = B[ 2];
+	X.x03 = B[ 3];
+	X.x04 = B[ 4];
+	X.x05 = B[ 5];
+	X.x06 = B[ 6];
+	X.x07 = B[ 7];
+	X.x08 = B[ 8];
+	X.x09 = B[ 9];
+	X.x10 = B[10];
+	X.x11 = B[11];
+	X.x12 = B[12];
+	X.x13 = B[13];
+	X.x14 = B[14];
+	X.x15 = B[15];
 
-#define R(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
+#define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
 	for (i = 0; i < 2; i++) {
-
 		/* Operate on columns. */
-		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
-		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
+		X.x04 ^= ROTL(X.x00+X.x12, 7);	X.x09 ^= ROTL(X.x05+X.x01, 7);
+		X.x14 ^= ROTL(X.x10+X.x06, 7);	X.x03 ^= ROTL(X.x15+X.x11, 7);
 		
-		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
-		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
+		X.x08 ^= ROTL(X.x04+X.x00, 9);	X.x13 ^= ROTL(X.x09+X.x05, 9);
+		X.x02 ^= ROTL(X.x14+X.x10, 9);	X.x07 ^= ROTL(X.x03+X.x15, 9);
 		
-		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
-		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
+		X.x12 ^= ROTL(X.x08+X.x04,13);	X.x01 ^= ROTL(X.x13+X.x09,13);
+		X.x06 ^= ROTL(X.x02+X.x14,13);	X.x11 ^= ROTL(X.x07+X.x03,13);
 		
-		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
-		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
+		X.x00 ^= ROTL(X.x12+X.x08,18);	X.x05 ^= ROTL(X.x01+X.x13,18);
+		X.x10 ^= ROTL(X.x06+X.x02,18);	X.x15 ^= ROTL(X.x11+X.x07,18);
 		
 		/* Operate on rows. */
-		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
-		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
+		X.x01 ^= ROTL(X.x00+X.x03, 7);	X.x06 ^= ROTL(X.x05+X.x04, 7);
+		X.x11 ^= ROTL(X.x10+X.x09, 7);	X.x12 ^= ROTL(X.x15+X.x14, 7);
 		
-		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
-		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
+		X.x02 ^= ROTL(X.x01+X.x00, 9);	X.x07 ^= ROTL(X.x06+X.x05, 9);
+		X.x08 ^= ROTL(X.x11+X.x10, 9);	X.x13 ^= ROTL(X.x12+X.x15, 9);
 		
-		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
-		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
+		X.x03 ^= ROTL(X.x02+X.x01,13);	X.x04 ^= ROTL(X.x07+X.x06,13);
+		X.x09 ^= ROTL(X.x08+X.x11,13);	X.x14 ^= ROTL(X.x13+X.x12,13);
 		
-		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
-		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
+		X.x00 ^= ROTL(X.x03+X.x02,18);	X.x05 ^= ROTL(X.x04+X.x07,18);
+		X.x10 ^= ROTL(X.x09+X.x08,18);	X.x15 ^= ROTL(X.x14+X.x13,18);
 }
 for (; i < 4; i++) {
 		/* Operate on columns. */
-		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
-		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
+		X.x04 ^= ROTL(X.x00+X.x12, 7);	X.x09 ^= ROTL(X.x05+X.x01, 7);
+		X.x14 ^= ROTL(X.x10+X.x06, 7);	X.x03 ^= ROTL(X.x15+X.x11, 7);
 		
-		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
-		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
+		X.x08 ^= ROTL(X.x04+X.x00, 9);	X.x13 ^= ROTL(X.x09+X.x05, 9);
+		X.x02 ^= ROTL(X.x14+X.x10, 9);	X.x07 ^= ROTL(X.x03+X.x15, 9);
 		
-		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
-		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
+		X.x12 ^= ROTL(X.x08+X.x04,13);	X.x01 ^= ROTL(X.x13+X.x09,13);
+		X.x06 ^= ROTL(X.x02+X.x14,13);	X.x11 ^= ROTL(X.x07+X.x03,13);
 		
-		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
-		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
+		X.x00 ^= ROTL(X.x12+X.x08,18);	X.x05 ^= ROTL(X.x01+X.x13,18);
+		X.x10 ^= ROTL(X.x06+X.x02,18);	X.x15 ^= ROTL(X.x11+X.x07,18);
 		
 		/* Operate on rows. */
-		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
-		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
+		X.x01 ^= ROTL(X.x00+X.x03, 7);	X.x06 ^= ROTL(X.x05+X.x04, 7);
+		X.x11 ^= ROTL(X.x10+X.x09, 7);	X.x12 ^= ROTL(X.x15+X.x14, 7);
 		
-		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
-		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
+		X.x02 ^= ROTL(X.x01+X.x00, 9);	X.x07 ^= ROTL(X.x06+X.x05, 9);
+		X.x08 ^= ROTL(X.x11+X.x10, 9);	X.x13 ^= ROTL(X.x12+X.x15, 9);
 		
-		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
-		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
+		X.x03 ^= ROTL(X.x02+X.x01,13);	X.x04 ^= ROTL(X.x07+X.x06,13);
+		X.x09 ^= ROTL(X.x08+X.x11,13);	X.x14 ^= ROTL(X.x13+X.x12,13);
 		
-		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
-		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
+		X.x00 ^= ROTL(X.x03+X.x02,18);	X.x05 ^= ROTL(X.x04+X.x07,18);
+		X.x10 ^= ROTL(X.x09+X.x08,18);	X.x15 ^= ROTL(X.x14+X.x13,18);
 }
-#undef R
+#undef ROTL
 
-	B[ 0] += x00;
+	B[ 0] += X.x00;
 	int one = 32 * (B[0] & 1048575);
 	__builtin_prefetch(&V[one]);
 	__builtin_prefetch(&V[one + 8]);
 	__builtin_prefetch(&V[one + 16]);
 	__builtin_prefetch(&V[one + 24]);
 	asm("":::"memory");
-	B[ 1] += x01;
-	B[ 2] += x02;
-	B[ 3] += x03;
-	B[ 4] += x04;
-	B[ 5] += x05;
-	B[ 6] += x06;
-	B[ 7] += x07;
-	B[ 8] += x08;
-	B[ 9] += x09;
-	B[10] += x10;
-	B[11] += x11;
-	B[12] += x12;
-	B[13] += x13;
-	B[14] += x14;
-	B[15] += x15;
+	B[ 1] += X.x01;
+	B[ 2] += X.x02;
+	B[ 3] += X.x03;
+	B[ 4] += X.x04;
+	B[ 5] += X.x05;
+	B[ 6] += X.x06;
+	B[ 7] += X.x07;
+	B[ 8] += X.x08;
+	B[ 9] += X.x09;
+	B[10] += X.x10;
+	B[11] += X.x11;
+	B[12] += X.x12;
+	B[13] += X.x13;
+	B[14] += X.x14;
+	B[15] += X.x15;
 }
 
 /*
