@@ -336,6 +336,21 @@ static char *lp_id;
 
 static void workio_cmd_free(struct workio_cmd *wc);
 
+static void workio_cmd_free(struct workio_cmd *wc);
+
+static void sleep_ms(int milliseconds) // cross-platform sleep function
+{
+#ifdef WIN32
+    Sleep(milliseconds);
+#elif _POSIX_C_SOURCE >= 199309L
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
+#else
+    usleep(milliseconds * 1000);
+#endif
+}
 
 #ifdef __linux /* Linux specific policy and affinity management */
 #include <sched.h>
@@ -2995,6 +3010,8 @@ int main(int argc, char *argv[]) {
 
 	/* start mining threads */
 	for (i = 0; i < opt_n_total_threads; i++) {
+		//stagger thread starts to try reduce parallel store/loads to memory between threads.
+		sleep_ms(330);
 		thr = &thr_info[i];
 
 		thr->id = i;
