@@ -1037,6 +1037,94 @@ static inline void salsa20_block(uint32_t *B, const uint32_t *Bx)
 	salsa8addsave64(B,x);
 }
 
+static inline void salsa20_block_prefetch(uint32_t *B, const uint32_t *Bx, uint32_t * __restrict V)
+{
+	//register int i;
+	struct XX
+	{
+		uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
+	} X;
+
+	salsa8eqxorload64(B,Bx);
+
+	salsa8load64(&X.x00,B);
+#define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
+#define QR(a, b, c, d)(		\
+	b ^= ROTL(a + d, 7),	\
+	c ^= ROTL(b + a, 9),	\
+	d ^= ROTL(c + b,13),	\
+	a ^= ROTL(d + c,18))
+
+		// Odd round
+		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
+		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
+		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
+		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
+		// Even round
+		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
+		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
+		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
+		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
+
+		// Odd round
+		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
+		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
+		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
+		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
+		// Even round
+		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
+		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
+		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
+		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
+
+		// Odd round
+		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
+		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
+		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
+		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
+		// Even round
+		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
+		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
+		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
+		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
+
+		// Odd round
+		QR(X.x00, X.x04, X.x08, X.x12);	// column 1
+		QR(X.x05, X.x09, X.x13, X.x01);	// column 2
+		QR(X.x10, X.x14, X.x02, X.x06);	// column 3
+		QR(X.x15, X.x03, X.x07, X.x11);	// column 4
+		// Even round
+		QR(X.x00, X.x01, X.x02, X.x03);	// row 1
+		QR(X.x05, X.x06, X.x07, X.x04);	// row 2
+		QR(X.x10, X.x11, X.x08, X.x09);	// row 3
+		QR(X.x15, X.x12, X.x13, X.x14);	// row 4
+#undef ROTL
+#undef QR
+	B[ 0] += X.x00;
+	int one = 32 * (B[0] & 1048575);
+	// cast pointer suitable for cache line size of 64 bytes
+	__builtin_prefetch((char *) &V[one]);
+	//__builtin_prefetch(&V[one + 8]);
+	__builtin_prefetch((char *) &V[one + 16]);
+	//__builtin_prefetch(&V[one + 24]);
+	asm("":::"memory");
+	B[ 1] += X.x01;
+	B[ 2] += X.x02;
+	B[ 3] += X.x03;
+	B[ 4] += X.x04;
+	B[ 5] += X.x05;
+	B[ 6] += X.x06;
+	B[ 7] += X.x07;
+	B[ 8] += X.x08;
+	B[ 9] += X.x09;
+	B[10] += X.x10;
+	B[11] += X.x11;
+	B[12] += X.x12;
+	B[13] += X.x13;
+	B[14] += X.x14;
+	B[15] += X.x15;
+}
+
 /* #### Moved above for salsa_block to use also
 //64-bit eqxor for xor_salsa8(). B & Bx must be uint32_t[16]
 static inline void salsa8load64(uint32_t *Xxx, const uint32_t *B)
@@ -1320,7 +1408,7 @@ static inline void scrypt_core(uint32_t * __restrict X, uint32_t * __restrict V/
 			X[k] ^= V[j + k];*/
 		eqxorload64(X,&V[j]);
 		salsa20_block(&X[0], &X[16]);
-		xor_salsa8_prefetch(&X[16], &X[0], V);
+		salsa20_block_prefetch(&X[16], &X[0], V);
 	}
 }
 
@@ -1802,7 +1890,7 @@ or some other overheads I am not aware about. Other small improvements including
 yielding 1-2% improvement over initial 2ways fork released June 2018. Hints at data alignment seem to have no effect.
 asm code lacks indication of said hints and sparse cortex-a53 documentation suggests alignment is handled transparently instead
 using checks. fireworm71 believes peak performance has been reached - cache and memory cannot keep up with code.
-UPDATE. scrypt_core() now almost performs as well as 2/3 ways while consuming 20% less power.
+UPDATE. scrypt_core() now approaches performance of 2/3 ways while consuming 20% less power.
 */
 // try prohibit loop unrolling loops for 2ways
 #pragma GCC push_options
@@ -2123,7 +2211,7 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *V/*, int N*/)
 	q_tmp.val[1] = vld1q_u32(&W[one +  4]);
 	two = 32 * (2 * (bb_b.val[0][0] & 1048575) + 1);
 	q_tmp.val[2] = vld1q_u32(&W[one +  8]);
-	//V = W;
+	V = W;
 	q_tmp.val[3] = vld1q_u32(&W[one + 12]);
 
 	for (register int n = 0; n < 1048576; n++)
@@ -2458,16 +2546,16 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *V/*, int N*/)
 			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
 				bb_b.val[0] = vaddq_u32(q_b.val[0], bb_b.val[0]);
 				ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-					one =	32 * (2 * (ba_b.val[0][0] & 1048575) + 0);	
+					one =	32 * (2 * (ba_b.val[0][0] & 1048575));	
 					two =	32 * (2 * (bb_b.val[0][0] & 1048575) + 1);
-					__builtin_prefetch(&W[one + 0]);
-					__builtin_prefetch(&W[one + 8]);
-					__builtin_prefetch(&W[one + 16]);
-					__builtin_prefetch(&W[one + 24]);
-					__builtin_prefetch(&W[two + 0]);
-					__builtin_prefetch(&W[two + 8]);
-					__builtin_prefetch(&W[two + 16]);
-					__builtin_prefetch(&W[two + 24]);
+					__builtin_prefetch((char *) &W[one]);
+					//__builtin_prefetch(&W[one + 8]);
+					__builtin_prefetch((char *) &W[one + 16]);
+					//__builtin_prefetch(&W[one + 24]);
+					__builtin_prefetch((char *) &W[two]);
+					//__builtin_prefetch(&W[two + 8]);
+					__builtin_prefetch((char *) &W[two + 16]);
+					//__builtin_prefetch(&W[two + 24]);
 
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
@@ -3689,15 +3777,13 @@ int hugepages_size_failed = 0;
 unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
 {
 	uint32_t throughput = (forceThroughput == -1 ? scrypt_best_throughput() : forceThroughput);
-	// oneways does not need extra memory
-	N = (forceThroughput == -1) ? N : N + 1;
 	#ifndef __aarch64__
 	if (opt_ryzen_1x) {
 		// force throughput to be 3 (aka AVX) instead of AVX2.
 		throughput = 3;
 	}
 	#endif
-	uint32_t size = throughput * 32 * (N) * sizeof(uint32_t);
+	uint32_t size = throughput * 32 * (N + 1) * sizeof(uint32_t);
 
 #ifdef __linux__
 	pthread_mutex_lock(&alloc_mutex);
