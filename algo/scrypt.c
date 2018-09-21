@@ -1346,10 +1346,11 @@ for (; i < 4; i++) {
 
 	B[ 0] += X.x00;
 	int one = 32 * (B[0] & 1048575);
-	__builtin_prefetch(&V[one]);
-	__builtin_prefetch(&V[one + 8]);
-	__builtin_prefetch(&V[one + 16]);
-	__builtin_prefetch(&V[one + 24]);
+	// cast pointer suitable for cache line size of 64 bytes
+	__builtin_prefetch((char *) &V[one]);
+	//__builtin_prefetch(&V[one + 8]);
+	__builtin_prefetch((char *) &V[one + 16]);
+	//__builtin_prefetch(&V[one + 24]);
 	asm("":::"memory");
 	B[ 1] += X.x01;
 	B[ 2] += X.x02;
@@ -1408,7 +1409,7 @@ static inline void scrypt_core(uint32_t * __restrict X, uint32_t * __restrict V/
 			X[k] ^= V[j + k];*/
 		eqxorload64(X,&V[j]);
 		salsa20_block(&X[0], &X[16]);
-		salsa20_block_prefetch(&X[16], &X[0], V);
+		xor_salsa8_prefetch(&X[16], &X[0], V);
 	}
 }
 
