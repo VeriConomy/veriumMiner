@@ -1102,10 +1102,10 @@ static inline void salsa20_block_prefetch(uint32_t *B, const uint32_t *Bx, uint3
 #undef QR
 	B[ 0] += X.x00;
 	int one = 32 * (B[0] & 1048575);
-	// cast pointer suitable for cache line size of 64 bytes
-	__builtin_prefetch((char *) &V[one]);
+	// cast pointer suitable for cache line size of 64 bytes on armv8
+	__builtin_prefetch((uint32x4x4_t *) &V[one]);
 	//__builtin_prefetch(&V[one + 8]);
-	__builtin_prefetch((char *) &V[one + 16]);
+	__builtin_prefetch((uint32x4x4_t *) &V[one + 16]);
 	//__builtin_prefetch(&V[one + 24]);
 	asm("":::"memory");
 	B[ 1] += X.x01;
@@ -1124,34 +1124,6 @@ static inline void salsa20_block_prefetch(uint32_t *B, const uint32_t *Bx, uint3
 	B[14] += X.x14;
 	B[15] += X.x15;
 }
-
-/* #### Moved above for salsa_block to use also
-//64-bit eqxor for xor_salsa8(). B & Bx must be uint32_t[16]
-static inline void salsa8load64(uint32_t *Xxx, const uint32_t *B)
-{	
-	uint32x4_t *dst = (uint32x4_t *) Xxx;
-	uint32x4_t *src = (uint32x4_t *) B;
-
-	*dst++ = *src++;*dst++ = *src++;*dst++ = *src++;*dst++ = *src++;
-}
-
-//64-bit eqxor for xor_salsa8(). B & Bx must be uint32_t[16]
-static inline void salsa8addsave64(uint32_t *B, const uint32_t *Xxx)
-{	
-	uint32x4_t *dst = (uint32x4_t *) B;
-	uint32x4_t *src = (uint32x4_t *) Xxx;
-
-	*dst++ += *src++;*dst++ += *src++;*dst++ += *src++;*dst++ += *src++;
-}
-
-//64-bit eqxor for xor_salsa8(). B & Bx must be uint32_t[16]
-static inline void salsa8eqxorload64(uint32_t *B, const uint32_t *Bx)
-{	
-	uint32x4_t *dst = (uint32x4_t *) B;
-	uint32x4_t *src = (uint32x4_t *) Bx;
-
-	*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;//*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;
-}*/
 
 /* 
  Loop is unrolled for slightly better performance on aarch64.
@@ -1347,9 +1319,9 @@ for (; i < 4; i++) {
 	B[ 0] += X.x00;
 	int one = 32 * (B[0] & 1048575);
 	// cast pointer suitable for cache line size of 64 bytes
-	__builtin_prefetch((char *) &V[one]);
+	__builtin_prefetch((uint32x4x4_t *) &V[one]);
 	//__builtin_prefetch(&V[one + 8]);
-	__builtin_prefetch((char *) &V[one + 16]);
+	__builtin_prefetch((uint32x4x4_t *) &V[one + 16]);
 	//__builtin_prefetch(&V[one + 24]);
 	asm("":::"memory");
 	B[ 1] += X.x01;
@@ -2549,14 +2521,14 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *V/*, int N*/)
 				ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
 					one =	32 * (2 * (ba_b.val[0][0] & 1048575));	
 					two =	32 * (2 * (bb_b.val[0][0] & 1048575) + 1);
-					__builtin_prefetch((char *) &W[one]);
-					//__builtin_prefetch(&W[one + 8]);
-					__builtin_prefetch((char *) &W[one + 16]);
-					//__builtin_prefetch(&W[one + 24]);
-					__builtin_prefetch((char *) &W[two]);
-					//__builtin_prefetch(&W[two + 8]);
-					__builtin_prefetch((char *) &W[two + 16]);
-					//__builtin_prefetch(&W[two + 24]);
+					__builtin_prefetch(&W[one]);
+					__builtin_prefetch(&W[one + 8]);
+					__builtin_prefetch(&W[one + 16]);
+					__builtin_prefetch(&W[one + 24]);
+					__builtin_prefetch(&W[two]);
+					__builtin_prefetch(&W[two + 8]);
+					__builtin_prefetch(&W[two + 16]);
+					__builtin_prefetch(&W[two + 24]);
 
 			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
 			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
@@ -3777,14 +3749,14 @@ int hugepages_fails = 0;
 int hugepages_size_failed = 0;
 unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
 {
-	uint32_t throughput = (forceThroughput == -1 ? scrypt_best_throughput() : forceThroughput);
+	uint32_t throughput = forceThroughput == -1 ? scrypt_best_throughput() : forceThroughput;
 	#ifndef __aarch64__
 	if (opt_ryzen_1x) {
 		// force throughput to be 3 (aka AVX) instead of AVX2.
 		throughput = 3;
 	}
 	#endif
-	uint32_t size = throughput * 32 * (N + 1) * sizeof(uint32_t);
+	size_t size = throughput * 32 * (N + 1) * sizeof(uint32_t);
 
 #ifdef __linux__
 	pthread_mutex_lock(&alloc_mutex);
@@ -3847,7 +3819,8 @@ unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
 	}
 	else
 	{
-		return (unsigned char*)aligned_alloc(16,size); // malloc already seems to align pointer
+		// pointer aligned to cache line size 64 bytes
+		return (unsigned char*)aligned_alloc(64,size);
 	}
 #elif defined(WIN32)
 
@@ -3915,9 +3888,14 @@ static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
 {
 	uint32_t tstate[8] __attribute__((__aligned__(16))), ostate[8] __attribute__((__aligned__(16)));
 	uint32_t X[32] __attribute__((__aligned__(16)));
-	uint32_t *V __attribute__((__aligned__(16)));
+	//uint32_t *V __attribute__((__aligned__(64)));
 	
-	V = (uint32_t *)(((uintptr_t)(__builtin_assume_aligned(scratchpad, 16)) + 63) & ~ (uintptr_t)(63));
+	// Cast scratchpad pointer to cache line size of 64 bytes on armv8
+	#ifdef __aarch64__
+	uint32_t *V __attribute__((__aligned__(64))) = (uint32_t *)(((uintptr_t)(__builtin_assume_aligned(scratchpad, 64)) + 63) & ~ (uintptr_t)(63));
+	#else
+	uint32_t *V = (uint32_t *)(((uintptr_t)(scratchpad) + 63) & ~ (uintptr_t)(63));
+	#endif
 
 	newmemcpy(tstate, midstate, 32);
 	HMAC_SHA256_80_init_armv8(input, tstate, ostate, 1);
