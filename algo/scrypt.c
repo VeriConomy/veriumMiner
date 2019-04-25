@@ -1371,6 +1371,7 @@ for (; i < 4; i++) {
    	 : [result] "=r" (x[0)
    	 : [input_i] "r" (B[0])
  	 ]);*/
+	asm("":::"memory");
 	// cast pointer suitable for incrementing and cache line size of 64 bytes
 	uint32x4x4_t *ptr = (uint32x4x4_t *) &V[x[0]];
 	__builtin_prefetch(ptr++);
@@ -1402,9 +1403,33 @@ static inline void eqxorload64(uint32_t *X, uint32x4x8_t *V)
 {
 	uint32_t j = X[16] & 1048575;
 	uint32x4_t *dst = (uint32x4_t *) X;
-	uint32x4_t *src = (uint32x4_t *) &V[j];
+	uint32x4_t one, two, three, four;
+	uint32_t *src = (uint32_t *) &V[j];
 
-	*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;
+	// Using non-temporal load pair. Might help expire L1keep prefetch.
+	asm volatile(
+		"ldnp %q[DST1], %q[DST2], [%[SRC]]" "\n"
+		: [DST1] "=w" (one), [DST2] "=w" (two)
+		: [SRC] "X" (src)
+	);
+	asm volatile(
+		"ldnp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
+		: [DST1] "=w" (three), [DST2] "=w" (four)
+		: [SRC] "X" (src)
+	);
+	*dst++ ^= one;*dst++ ^= two; 
+	asm volatile(
+		"ldnp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
+		: [DST1] "=w" (one), [DST2] "=w" (two)  
+		: [SRC] "X" (src)
+	);
+	*dst++ ^= three;*dst++ ^= four;
+	asm volatile(
+		"ldnp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
+		: [DST1] "=w" (three), [DST2] "=w" (four)
+		: [SRC] "X" (src)
+	);
+	*dst++ ^= one;*dst++ ^= two;*dst++ ^= three;*dst ^= four;
 }
 
 // separating the second loop as an inline function boosts & stabilizes hashrate for some reason.
@@ -1422,23 +1447,45 @@ static inline void scrypt_core_loop2(uint32_t *X, uint32x4x8_t *V)
 //Neon based memcpy alternative for scrypt_core(). a & b must be uint32_t[32]
 static inline void memcpy64(uint32x4x8_t *V, uint32_t *X)
 {
-    	uint32x4_t *s1 = (uint32x4_t *) V;
-    	uint32x4_t *s2 = (uint32x4_t *) X;
+    	uint32x4_t *src = (uint32x4_t *) X;
 
-	*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;*s1++ = *s2++;
+	// Using store pair
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC]]" "\n"
+		:  
+		: [DST1] "w" (*src++), [DST2] "w" (*src++), [SRC] "X" (V)
+	);
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
+		:  
+		: [DST1] "w" (*src++), [DST2] "w" (*src++), [SRC] "X" (V)
+	);
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
+		:  
+		: [DST1] "w" (*src++), [DST2] "w" (*src++), [SRC] "X" (V)
+	);
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
+		:
+		: [DST1] "w" (*src++), [DST2] "w" (*src), [SRC] "X" (V)
+	);
 }
 
 // gcc8 does not order instructions for dual issue in xor_salsa8_prefetch.
 static inline void scrypt_core(uint32_t *X, uint32x4x8_t *V/*, int N*/)
 {
 	//int i; * integrate scratchpad 1024-bit pointer into loop as iterator & eliminate index calculator
-    	uint32x4x8_t *Vstr = V;
+	{
+	    	uint32x4x8_t *Vstr = V;
 
-	for (; Vstr < &V[1048576]; Vstr++) {
-		memcpy64(Vstr, X);
-		salsa20_block(&X[0], &X[16]);
-		salsa20_block(&X[16], &X[0]);
+		for (; Vstr < &V[1048576]; Vstr++) {
+			memcpy64(Vstr, X);
+			salsa20_block(&X[0], &X[16]);
+			salsa20_block(&X[16], &X[0]);
+		}
 	}
+
 	/*for (Vstr = V; Vstr < &V[1048576]; Vstr++) {
 		// Address is resolved in eqxorload64
 		eqxorload64(X, V);
