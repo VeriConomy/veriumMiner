@@ -23,9 +23,9 @@ Refer to rest of this Readme for installing other dependancies.
 
 ./autogen.sh
 
-./configure CC="gcc-8" CXX="g++-8" CFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops" CXXFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops" RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS="cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" --with-curl --with-crypto
+./configure CC="gcc-8" CXX="g++-8" CFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops -fno-stack-protector -fno-pie" CXXFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops -fno-stack-protector -fno-pie" RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS="cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" --with-curl --with-crypto
 
-make RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS=" cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" LDFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops" AR="aarch64-linux-gnu-gcc-ar-8"
+make RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS=" cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so) -fno-stack-protector -fno-pie" LDFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops" AR="aarch64-linux-gnu-gcc-ar-8 -fno-stack-protector -fno-pie" -j 4
 
 (optional step to reduce binary bloat)
 
