@@ -1,6 +1,10 @@
+Please observe compile instructions below for best results (up to 10% more).
+
 All credits to fireworm71 et al & effectsToCause et al etc etc.
 
-This Fork is focused on ARMV8/aarch64 sbc's based on Allwinner H5, H6, A64 etc and any board with 64-bit OS that has Cortex-a53 (or above) CPU. This reduces the memory requirements of the default work thread of 3ways (now 2ways) by 1/3rd without performance penalty allowing more of said threads to run on the typically low ram boards currently available. For example, I am able to run "-t 2 --oneways=2" on my 1gb boards. (* See edit below) I initially hoped for 3x 2ways & 1x 1ways with "-t 3 --oneways=1" however the bloated Linux Kernel in my manufacturer (Orange Pi) provided Ubuntu kills it due to lack of free memory...
+This Fork is focused on ARMV8/aarch64 sbc's based on Allwinner H5, H6, A64 etc and any board with 64-bit OS that has Cortex-a53 (or above) CPU. This reduces the memory requirements of the default work thread of 3ways (now 2ways) by 1/3rd without performance penalty allowing more of said threads to run on the typically low ram boards currently available.
+
+*EDIT single way threads are not performance comparable to multi (2ways) default threads. Use -1 x where x is the number of cpu cores. Reduced power draw and heat generation.
 
 *EDIT custom Ubuntu images for Orange Pi One Plus & Orange Pi Lite2 available with miner binary preinstalled. Refer to start up guide at https://drive.google.com/open?id=14e1c96l1_FAa9fWFUJNB3MepgYpWrpoV for download links.
 Adding "echo 0 | tee /proc/sys/vm/min_free_kbytes" to /etc/rc.local and reconfiguring/rebuilding the kernel to include hugepages (madvise) support (then adding "echo always | tee /sys/kernel/mm/transparent_hugepage/enabled" to rc.local) and removing unneeded features to get the kernel Image file below 8mb in size allows -t 3 --oneways=1 on boards with 1gb ram also with as few services running as possible, e.g. replacing sshd with dropbear and disabling network manager only using /etc/network/interfaces for LAN/Wifi connection profiles.
@@ -23,9 +27,9 @@ Refer to rest of this Readme for installing other dependancies.
 
 ./autogen.sh
 
-./configure CC="gcc-8" CXX="g++-8" CFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops -fno-stack-protector -fno-pie" CXXFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops -fno-stack-protector -fno-pie" RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS="cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" --with-curl --with-crypto
+./configure CC="gcc-8" CXX="g++-8" CFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops -fno-pie -fno-stack-protector -fPIC" CXXFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops -fno-pie -fno-stack-protector -fPIC" RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so) -fPIC" ARFLAGS="cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" --with-curl --with-crypto
 
-make RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS=" cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so) -fno-stack-protector -fno-pie" LDFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -funroll-loops" AR="aarch64-linux-gnu-gcc-ar-8 -fno-stack-protector -fno-pie" -j 4
+make RANLIB="aarch64-linux-gnu-gcc-ranlib-8 --plugin=$(gcc-8 --print-file-name=liblto_plugin.so)" ARFLAGS=" cr --plugin=$(gcc-8 --print-file-name=liblto_plugin.so) -fno-stack-protector -fPIC" LDFLAGS="-O3 -mcpu=cortex-a53+crypto -flto -fuse-linker-plugin -fno-pie -funroll-loops" AR="aarch64-linux-gnu-gcc-ar-8 -fno-stack-protector -fPIC" -j 4
 
 (optional step to reduce binary bloat)
 
