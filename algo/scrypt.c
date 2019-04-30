@@ -61,7 +61,7 @@ static const uint32_t keypad[12] = {
 static const uint32_t innerpad[11] = {
 	0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x000004a0
 };
-static const uint32_t outerpad[8] = {
+static const uint32_t outerpad[ 8] = {
 	0x80000000, 0, 0, 0, 0, 0, 0, 0x00000300
 };
 
@@ -72,7 +72,7 @@ static const uint32_t finalblk[16] = {
 static inline void HMAC_SHA256_80_init(const uint32_t *key,
 	uint32_t *tstate, uint32_t *ostate)
 {
-	uint32_t ihash[8];
+	uint32_t ihash[ 8];
 	uint32_t pad[16];
 	int i;
 
@@ -100,7 +100,7 @@ static inline void HMAC_SHA256_80_init(const uint32_t *key,
 static inline void PBKDF2_SHA256_80_128(const uint32_t *tstate,
 	const uint32_t *ostate, const uint32_t *salt, uint32_t *output)
 {
-	uint32_t istate[8], ostate2[8];
+	uint32_t istate[ 8], ostate2[ 8];
 	uint32_t ibuf[16], obuf[16];
 	int i, j;
 
@@ -113,7 +113,7 @@ static inline void PBKDF2_SHA256_80_128(const uint32_t *tstate,
 
 	for (i = 0; i < 4; i++) {
 		newmemcpy(obuf, istate, 32);
-		ibuf[4] = i + 1;
+		ibuf[ 4] = i + 1;
 		sha256_transform(obuf, ibuf, 0);
 
 		newmemcpy(ostate2, ostate, 32);
@@ -473,7 +473,7 @@ static inline void newmemcpytail(uint32_t *dstp, const uint32_t *srcp, uint len)
 }
 
 // Obsolete variables used in sha256 steps
-/*static const uint32_t sha256_h[8] = {
+/*static const uint32_t sha256_h[ 8] = {
 	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };*/
@@ -568,22 +568,22 @@ static const uint32x4x4_t kc = {
 
 #define Rx(T0, T1, K, W0, W1, W2, W3)      \
 	W0 = vsha256su0q_u32( W0, W1 );    \
-	ddtmp = dd.val[0];                           \
+	ddtmp = dd.val[ 0];                           \
 	T1 = vaddq_u32( W1, K );           \
-	dd.val[0] = vsha256hq_u32( dd.val[0], dd.val[1], T0 );  \
-	dd.val[1] = vsha256h2q_u32( dd.val[1], ddtmp, T0 ); \
+	dd.val[ 0] = vsha256hq_u32( dd.val[ 0], dd.val[ 1], T0 );  \
+	dd.val[ 1] = vsha256h2q_u32( dd.val[ 1], ddtmp, T0 ); \
 	W0 = vsha256su1q_u32( W0, W2, W3 );
 
 #define Ry(T0, T1, K, W1)                  \
-	ddtmp = dd.val[0];                           \
+	ddtmp = dd.val[ 0];                           \
 	T1 = vaddq_u32( W1, K  );          \
-	dd.val[0] = vsha256hq_u32( dd.val[0], dd.val[1], T0 );  \
-	dd.val[1] = vsha256h2q_u32( dd.val[1], ddtmp, T0 );
+	dd.val[ 0] = vsha256hq_u32( dd.val[ 0], dd.val[ 1], T0 );  \
+	dd.val[ 1] = vsha256h2q_u32( dd.val[ 1], ddtmp, T0 );
 
 #define Rz(T0)                             \
-	ddtmp = dd.val[0];                       	   \
-	dd.val[0] = vsha256hq_u32( dd.val[0], dd.val[1], T0 );  \
-	dd.val[1] = vsha256h2q_u32( dd.val[1], ddtmp, T0 );
+	ddtmp = dd.val[ 0];                       	   \
+	dd.val[ 0] = vsha256hq_u32( dd.val[ 0], dd.val[ 1], T0 );  \
+	dd.val[ 1] = vsha256h2q_u32( dd.val[ 1], ddtmp, T0 );
 
 #define __swap32gen(x)							\
     (__uint32_t)(((__uint32_t)(x) & 0xff) << 24 |			\
@@ -591,20 +591,20 @@ static const uint32x4x4_t kc = {
     ((__uint32_t)(x) & 0xff000000) >> 24)
 
 //based on sha2armv8.c in new vrm wallet. Minor performance gain from inlineable shrunken code.
-static inline void sha256_transform_armv8(uint32_t state[8], const uint32_t data[16])
+static inline void sha256_transform_armv8(uint32_t state[ 8], const uint32_t data[16])
 {
 	static uint32x4_t w0, w1, w2, w3, ddtmp;
 	static uint32x4x2_t dd, sta;
 	static uint32x4_t t0, t1;
 
 	/* load state */
-	sta.val[0] = vld1q_u32(&state[0]);
-	sta.val[1] = vld1q_u32(&state[4]);
+	sta.val[ 0] = vld1q_u32(&state[ 0]);
+	sta.val[ 1] = vld1q_u32(&state[ 4]);
  
 	/* load message */
 	w0 = vld1q_u32(data);
 	w1 = vld1q_u32(data + 4);
-	t0 = vaddq_u32(w0, k0.val[0]);
+	t0 = vaddq_u32(w0, k0.val[ 0]);
 	w2 = vld1q_u32(data + 8);
 	dd = sta;
 	w3 = vld1q_u32(data + 12);
@@ -616,36 +616,36 @@ static inline void sha256_transform_armv8(uint32_t state[8], const uint32_t data
 		w3 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w3)));
 	}*/
 
-	//dd.val[1] = s1;
+	//dd.val[ 1] = s1;
 
 	/* perform rounds of four */
-	Rx(t0, t1, k0.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k0.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k0.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k4.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k4.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k4.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k4.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k8.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k8.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k8.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k8.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, kc.val[0], w3, w0, w1, w2);
-	Ry(t0, t1, kc.val[1], w1);
-	Ry(t1, t0, kc.val[2], w2);
-	Ry(t0, t1, kc.val[3], w3);
+	Rx(t0, t1, k0.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k0.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k0.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k4.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k4.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k4.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k4.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k8.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k8.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k8.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k8.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, kc.val[ 0], w3, w0, w1, w2);
+	Ry(t0, t1, kc.val[ 1], w1);
+	Ry(t1, t0, kc.val[ 2], w2);
+	Ry(t0, t1, kc.val[ 3], w3);
 	Rz(t1);
 
 	/* update state */
-	sta.val[0] = vaddq_u32(sta.val[0], dd.val[0]);
-	sta.val[1] = vaddq_u32(sta.val[1], dd.val[1]);
+	sta.val[ 0] = vaddq_u32(sta.val[ 0], dd.val[ 0]);
+	sta.val[ 1] = vaddq_u32(sta.val[ 1], dd.val[ 1]);
 
 	/* save state */
-	vst1q_u32(&state[0], sta.val[0]);
-	vst1q_u32(&state[4], sta.val[1]);
+	vst1q_u32(&state[ 0], sta.val[ 0]);
+	vst1q_u32(&state[ 4], sta.val[ 1]);
 }
 
-static inline void sha256_transform_armv8_init(uint32_t state[8], const uint32_t data[16])
+static inline void sha256_transform_armv8_init(uint32_t state[ 8], const uint32_t data[16])
 {
 	static uint32x4_t w0, w1, w2, w3, ddtmp;
 	static uint32x4x2_t dd, sta;
@@ -654,40 +654,40 @@ static inline void sha256_transform_armv8_init(uint32_t state[8], const uint32_t
 	/* load message */
 	w0 = vld1q_u32(data);
 	w1 = vld1q_u32(data + 4);
-	t0 = vaddq_u32(w0, k0.val[0]);
+	t0 = vaddq_u32(w0, k0.val[ 0]);
 	w2 = vld1q_u32(data + 8);
 	w3 = vld1q_u32(data + 12);
 
-	/* initialize t0, dd.val[0], dd.val[1] */
+	/* initialize t0, dd.val[ 0], dd.val[ 1] */
  
 	dd = sha256_h_neon;
-	//dd.val[1] = s1;
+	//dd.val[ 1] = s1;
 
 	/* perform rounds of four */
-	Rx(t0, t1, k0.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k0.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k0.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k4.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k4.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k4.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k4.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k8.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k8.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k8.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k8.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, kc.val[0], w3, w0, w1, w2);
-	Ry(t0, t1, kc.val[1], w1);
-	Ry(t1, t0, kc.val[2], w2);
-	Ry(t0, t1, kc.val[3], w3);
+	Rx(t0, t1, k0.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k0.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k0.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k4.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k4.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k4.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k4.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k8.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k8.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k8.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k8.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, kc.val[ 0], w3, w0, w1, w2);
+	Ry(t0, t1, kc.val[ 1], w1);
+	Ry(t1, t0, kc.val[ 2], w2);
+	Ry(t0, t1, kc.val[ 3], w3);
 	Rz(t1);
 
 	/* update state */
-	sta.val[0] = vaddq_u32(sha256_h_neon.val[0], dd.val[0]);
-	sta.val[1] = vaddq_u32(sha256_h_neon.val[1], dd.val[1]);
+	sta.val[ 0] = vaddq_u32(sha256_h_neon.val[ 0], dd.val[ 0]);
+	sta.val[ 1] = vaddq_u32(sha256_h_neon.val[ 1], dd.val[ 1]);
 
 	/* save state */
-	vst1q_u32(&state[0], sta.val[0]);
-	vst1q_u32(&state[4], sta.val[1]);
+	vst1q_u32(&state[ 0], sta.val[ 0]);
+	vst1q_u32(&state[ 4], sta.val[ 1]);
 }
 
 static inline void sha256_transform_80_128_armv8(uint32_t *state, const uint32_t *data, const uint32_t *tstate, uint32_t *output, bool finalstep)
@@ -697,51 +697,51 @@ static inline void sha256_transform_80_128_armv8(uint32_t *state, const uint32_t
 	static uint32x4_t t0, t1;
 
 	/* load state */
-	sta.val[0] = vld1q_u32(&tstate[0]);
-	sta.val[1] = vld1q_u32(&tstate[4]);
+	sta.val[ 0] = vld1q_u32(&tstate[ 0]);
+	sta.val[ 1] = vld1q_u32(&tstate[ 4]);
 	dd = sta;
 	/* load message */
 	w0 = vld1q_u32(data);
 	w1 = vld1q_u32(data + 4);
-	t0 = vaddq_u32(w0, k0.val[0]);
+	t0 = vaddq_u32(w0, k0.val[ 0]);
 	w2 = vld1q_u32(data + 8);
 	w3 = vld1q_u32(data + 12);
 
-	/* initialize t0, dd.val[0], dd.val[1] */
+	/* initialize t0, dd.val[ 0], dd.val[ 1] */
  
-	//dd.val[1] = s1;
+	//dd.val[ 1] = s1;
 
 	/* perform rounds of four */
-	Rx(t0, t1, k0.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k0.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k0.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k4.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k4.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k4.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k4.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k8.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k8.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k8.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k8.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, kc.val[0], w3, w0, w1, w2);
-	Ry(t0, t1, kc.val[1], w1);
-	Ry(t1, t0, kc.val[2], w2);
-	Ry(t0, t1, kc.val[3], w3);
+	Rx(t0, t1, k0.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k0.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k0.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k4.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k4.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k4.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k4.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k8.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k8.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k8.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k8.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, kc.val[ 0], w3, w0, w1, w2);
+	Ry(t0, t1, kc.val[ 1], w1);
+	Ry(t1, t0, kc.val[ 2], w2);
+	Ry(t0, t1, kc.val[ 3], w3);
 	Rz(t1);
 
 	/* update state */
-	sta.val[0] = vaddq_u32(sta.val[0], dd.val[0]);
-	sta.val[1] = vaddq_u32(sta.val[1], dd.val[1]);
+	sta.val[ 0] = vaddq_u32(sta.val[ 0], dd.val[ 0]);
+	sta.val[ 1] = vaddq_u32(sta.val[ 1], dd.val[ 1]);
 
 	/* save state */
 	if(!finalstep) {
-		vst1q_u32(&state[0], sta.val[0]);
-		vst1q_u32(&state[4], sta.val[1]);
+		vst1q_u32(&state[ 0], sta.val[ 0]);
+		vst1q_u32(&state[ 4], sta.val[ 1]);
 	} else {
-		sta.val[0] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[0])));
-		sta.val[1] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[1])));
-		vst1q_u32(output + 0, sta.val[0]);
-		vst1q_u32(output + 4, sta.val[1]);
+		sta.val[ 0] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[ 0])));
+		sta.val[ 1] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[ 1])));
+		vst1q_u32(output + 0, sta.val[ 0]);
+		vst1q_u32(output + 4, sta.val[ 1]);
 	}
 }
 
@@ -753,8 +753,8 @@ static void sha256_compress_armv8(uint32_t *state, const uint32_t *data, int blo
 	static uint32x4_t t0, t1;
 
 	/* load state */
-	sta.val[0] = vld1q_u32(&state[0]);
-	sta.val[1] = vld1q_u32(&state[4]);
+	sta.val[ 0] = vld1q_u32(&state[ 0]);
+	sta.val[ 1] = vld1q_u32(&state[ 4]);
 
 while (blocks)
       {
@@ -773,58 +773,58 @@ while (blocks)
 		w3 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w3)));
 	}
 
-	/* initialize t0, dd.val[0], dd.val[1] */
-	t0 = vaddq_u32(w0, k0.val[0]);
+	/* initialize t0, dd.val[ 0], dd.val[ 1] */
+	t0 = vaddq_u32(w0, k0.val[ 0]);
  
-	//dd.val[1] = s1;
+	//dd.val[ 1] = s1;
 
 	/* perform rounds of four */
-	Rx(t0, t1, k0.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k0.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k0.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k4.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k4.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k4.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k4.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, k8.val[0], w3, w0, w1, w2);
-	Rx(t0, t1, k8.val[1], w0, w1, w2, w3);
-	Rx(t1, t0, k8.val[2], w1, w2, w3, w0);
-	Rx(t0, t1, k8.val[3], w2, w3, w0, w1);
-	Rx(t1, t0, kc.val[0], w3, w0, w1, w2);
-	Ry(t0, t1, kc.val[1], w1);
-	Ry(t1, t0, kc.val[2], w2);
-	Ry(t0, t1, kc.val[3], w3);
+	Rx(t0, t1, k0.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k0.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k0.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k4.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k4.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k4.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k4.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, k8.val[ 0], w3, w0, w1, w2);
+	Rx(t0, t1, k8.val[ 1], w0, w1, w2, w3);
+	Rx(t1, t0, k8.val[ 2], w1, w2, w3, w0);
+	Rx(t0, t1, k8.val[ 3], w2, w3, w0, w1);
+	Rx(t1, t0, kc.val[ 0], w3, w0, w1, w2);
+	Ry(t0, t1, kc.val[ 1], w1);
+	Ry(t1, t0, kc.val[ 2], w2);
+	Ry(t0, t1, kc.val[ 3], w3);
 	Rz(t1);
 
 	/* update state */
-	sta.val[0] = vaddq_u32(sta.val[0], dd.val[0]);
-	sta.val[1] = vaddq_u32(sta.val[1], dd.val[1]);
+	sta.val[ 0] = vaddq_u32(sta.val[ 0], dd.val[ 0]);
+	sta.val[ 1] = vaddq_u32(sta.val[ 1], dd.val[ 1]);
 
       data += 16;
       blocks--;
 }
 	/* save state */
-	vst1q_u32(&state[0], sta.val[0]);
-	vst1q_u32(&state[4], sta.val[1]);
+	vst1q_u32(&state[ 0], sta.val[ 0]);
+	vst1q_u32(&state[ 4], sta.val[ 1]);
 
 	/* save state */
 	if(!finalstep) {
-		vst1q_u32(&state[0], sta.val[0]);
-		vst1q_u32(&state[4], sta.val[1]);
+		vst1q_u32(&state[ 0], sta.val[ 0]);
+		vst1q_u32(&state[ 4], sta.val[ 1]);
 	} else {
-		sta.val[0] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[0])));
-		sta.val[1] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[1])));
-		vst1q_u32(output + 0, sta.val[0]);
-		vst1q_u32(output + 4, sta.val[1]);
+		sta.val[ 0] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[ 0])));
+		sta.val[ 1] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(sta.val[ 1])));
+		vst1q_u32(output + 0, sta.val[ 0]);
+		vst1q_u32(output + 4, sta.val[ 1]);
 	}
 }
 
 static inline void HMAC_SHA256_80_init_armv8(const uint32_t *key,
 	uint32_t *tstate, uint32_t *ostate, uint32_t numways)
 {
-	//uint32_t ihash[8];
+	//uint32_t ihash[ 8];
 	//uint32_t pad[16];
-	//size_t numkeys = (sizeof(key)/sizeof(key[0]));
+	//size_t numkeys = (sizeof(key)/sizeof(key[ 0]));
 	uint32_t pad[48] = {
 	0, 0, 0, 0, 0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000280,
 	0, 0, 0, 0,
@@ -887,7 +887,7 @@ static inline void HMAC_SHA256_80_init_armv8(const uint32_t *key,
 static inline void PBKDF2_SHA256_80_128_armv8(const uint32_t *tstate,
 	const uint32_t *ostate, const uint32_t *salt, uint32_t *output)
 {
-	uint32_t istate[8], ostate2[8];
+	uint32_t istate[ 8], ostate2[ 8];
 	/*uint32_t ibuf[16], obuf[16];*/
 
 	uint32_t ibuf[16] = {
@@ -912,12 +912,12 @@ static inline void PBKDF2_SHA256_80_128_armv8(const uint32_t *tstate,
 	//newmemcpy(obuf + 8, outerpad, 32);
 
 	for (i = 0; i < 4; i++) {
-		//newmemcpy(obuf, istate, 32);
-		ibuf[4] = i + 1;
-		//sha256_transform_80_128_armv8(obuf, ibuf, istate);
+	//newmemcpy(obuf, istate, 32);
+		ibuf[ 4] = i + 1;
+	//sha256_transform_80_128_armv8(obuf, ibuf, istate);
 		sha256_transform_80_128_armv8(bufouterpad, ibuf, istate, output, false);
 	asm("":::"memory");
-		//newmemcpy(ostate2, ostate, 32);
+	//newmemcpy(ostate2, ostate, 32);
 		sha256_transform_80_128_armv8(ostate2, bufouterpad, ostate, output, true);
 		/*for (j = 0; j < 8; j++)
 			output[8 * i + j] = __builtin_bswap32(ostate2[j]);*/
@@ -979,40 +979,38 @@ static void PBKDF2_SHA256_128_32_armv8(uint32_t *tstate, uint32_t *ostate,
 	}
 }
 
-static inline void salsa20_block_loop1(uint32x4x16_t *B)
+static inline void salsa20_block_loop1(uint32x4x16_t *restrict B)
 {
-	register int i;
-	uint32_t x[16];
+	uint32_t __attribute__((__aligned__(8))) x[16];
 
 	// Working on left half
-	B->val[0] = veorq_u32(B->val[0], B->val[4]);
-	B->val[1] = veorq_u32(B->val[1], B->val[5]);
-	B->val[2] = veorq_u32(B->val[2], B->val[6]);
-	B->val[3] = veorq_u32(B->val[3], B->val[7]);
+	B->val[ 0] = veorq_u32(B->val[ 0], B->val[ 4]);
+	B->val[ 1] = veorq_u32(B->val[ 1], B->val[ 5]);
+	B->val[ 2] = veorq_u32(B->val[ 2], B->val[ 6]);
+	B->val[ 3] = veorq_u32(B->val[ 3], B->val[ 7]);
 
 	// Neon to generic register transfer stalls the pipeline
 	// Cortex a8 easily 20 cycles. load and store pairs 
 	// using 64 byte L1 cache buffer might be a work around.
-	x[0]  = B->val[0][0];
-	x[1]  = B->val[0][1];
-	x[2]  = B->val[0][2];
-	x[3]  = B->val[0][3];
+	x[ 0] = B->val[ 0][ 0];
+	x[ 1] = B->val[ 0][ 1];
+	x[ 2] = B->val[ 0][ 2];
+	x[ 3] = B->val[ 0][ 3];
 
-	x[4]  = B->val[1][0];
-	x[5]  = B->val[1][1];
-	x[6]  = B->val[1][2];
-	x[7]  = B->val[1][3];
+	x[ 4] = B->val[ 1][ 0];
+	x[ 5] = B->val[ 1][ 1];
+	x[ 6] = B->val[ 1][ 2];
+	x[ 7] = B->val[ 1][ 3];
 
-	x[8]  = B->val[2][0];
-	x[9]  = B->val[2][1];
-	x[10] = B->val[2][2];
-	x[11] = B->val[2][3];
+	x[ 8] = B->val[ 2][ 0];
+	x[ 9] = B->val[ 2][ 1];
+	x[10] = B->val[ 2][ 2];
+	x[11] = B->val[ 2][ 3];
 
-	x[12] = B->val[3][0];
-	x[13] = B->val[3][1];
-	x[14] = B->val[3][2];
-	x[15] = B->val[3][3];
-
+	x[12] = B->val[ 3][ 0];
+	x[13] = B->val[ 3][ 1];
+	x[14] = B->val[ 3][ 2];
+	x[15] = B->val[ 3][ 3];
 #define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
 #define QR(a, b, c, d)(		\
 	b ^= ROTL(a + d, 7),	\
@@ -1020,335 +1018,320 @@ static inline void salsa20_block_loop1(uint32x4x16_t *B)
 	d ^= ROTL(c + b,13),	\
 	a ^= ROTL(d + c,18))
 
-//	for (i = 0; i < 4; i ++) {
-		// Odd round
-		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-		QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-		// Even round
-		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//	}
-		// Odd round
-		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-		QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-		// Even round
-		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-		// Odd round
-		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-		QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-		// Even round
-		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-		// Odd round
-		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-		QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-		// Even round
-		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
+	// Loop fully unrolled
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
+
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
+
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
+
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
 #undef ROTL
 #undef QR
+	B->val[ 8][ 0] = x[ 0];
+	B->val[ 8][ 1] = x[ 1]; 
+	B->val[ 8][ 2] = x[ 2];  
+	B->val[ 8][ 3] = x[ 3];
 
-	B->val[8][0] = x[0];
-	B->val[8][1] = x[1]; 
-	B->val[8][2] = x[2];  
-	B->val[8][3] = x[3];
+	B->val[ 9][ 0] = x[ 4];  
+	B->val[ 9][ 1] = x[ 5];
+	B->val[ 9][ 2] = x[ 6];  
+	B->val[ 9][ 3] = x[ 7];
 
-	B->val[9][0] = x[4];  
-	B->val[9][1] = x[5];
-	B->val[9][2] = x[6];  
-	B->val[9][3] = x[7];
+	B->val[10][ 0] = x[ 8];  
+	B->val[10][ 1] = x[ 9];
+	B->val[10][ 2] = x[10]; 
+	B->val[10][ 3] = x[11]; 
 
-	B->val[10][0] = x[8];  
-	B->val[10][1] = x[9];
-	B->val[10][2] = x[10]; 
-	B->val[10][3] = x[11]; 
+	B->val[11][ 0] = x[12]; 
+	B->val[11][ 1] = x[13]; 
+	B->val[11][ 2] = x[14]; 
+ 	B->val[11][ 3] = x[15]; 
 
-	B->val[11][0] = x[12]; 
-	B->val[11][1] = x[13]; 
-	B->val[11][2] = x[14]; 
- 	B->val[11][3] = x[15]; 
-
-	B->val[0] = vaddq_u32(B->val[0], B->val[8]);
-	B->val[1] = vaddq_u32(B->val[1], B->val[9]);
-	B->val[2] = vaddq_u32(B->val[2], B->val[10]);
-	B->val[3] = vaddq_u32(B->val[3], B->val[11]);
+	B->val[ 0] = vaddq_u32(B->val[ 0], B->val[ 8]);
+	B->val[ 1] = vaddq_u32(B->val[ 1], B->val[ 9]);
+	B->val[ 2] = vaddq_u32(B->val[ 2], B->val[10]);
+	B->val[ 3] = vaddq_u32(B->val[ 3], B->val[11]);
 }
 
-static inline uint32x4x8_t *salsa20_block_loop2_prefetch(uint32x4x16_t *B, uint32x4x8_t *V)
+static inline uint32x4x8_t *salsa20_block_loop2_prefetch(uint32x4x16_t *restrict B, uint32x4x8_t *restrict V)
 {
-	//register uint32_t i;
-	uint32_t x[17];
+	uint32_t __attribute__((__aligned__(8))) x[17];
 
 	// Working on right half
-	B->val[4] = veorq_u32(B->val[4], B->val[0]);
-	B->val[5] = veorq_u32(B->val[5], B->val[1]);
-	B->val[6] = veorq_u32(B->val[6], B->val[2]);
-	B->val[7] = veorq_u32(B->val[7], B->val[3]);
+	B->val[ 4] = veorq_u32(B->val[ 4], B->val[ 0]);
+	B->val[ 5] = veorq_u32(B->val[ 5], B->val[ 1]);
+	B->val[ 6] = veorq_u32(B->val[ 6], B->val[ 2]);
+	B->val[ 7] = veorq_u32(B->val[ 7], B->val[ 3]);
 
 	// Neon to generic register transfer stalls the pipeline
 	// Cortex a8 easily 20 cycles. load and store pairs 
 	// using 64 byte L1 cache buffer might be a work around.
-	x[0]  = B->val[4][0];
-	x[1]  = B->val[4][1];
-	x[2]  = B->val[4][2];
-	x[3]  = B->val[4][3];
+	x[ 0] = B->val[ 4][ 0];
+	x[ 1] = B->val[ 4][ 1];
+	x[ 2] = B->val[ 4][ 2];
+	x[ 3] = B->val[ 4][ 3];
 
-	x[4]  = B->val[5][0];
-	x[5]  = B->val[5][1];
-	x[6]  = B->val[5][2];
-	x[7]  = B->val[5][3];
+	x[ 4] = B->val[ 5][ 0];
+	x[ 5] = B->val[ 5][ 1];
+	x[ 6] = B->val[ 5][ 2];
+	x[ 7] = B->val[ 5][ 3];
 
-	x[8]  = B->val[6][0];
-	x[9]  = B->val[6][1];
-	x[10] = B->val[6][2];
-	x[11] = B->val[6][3];
+	x[ 8] = B->val[ 6][ 0];
+	x[ 9] = B->val[ 6][ 1];
+	x[10] = B->val[ 6][ 2];
+	x[11] = B->val[ 6][ 3];
 
-	x[12] = B->val[7][0];
-	x[13] = B->val[7][1];
-	x[14] = B->val[7][2];
-	x[15] = B->val[7][3];
+	x[12] = B->val[ 7][ 0];
+	x[13] = B->val[ 7][ 1];
+	x[14] = B->val[ 7][ 2];
+	x[15] = B->val[ 7][ 3];
 
 	// Neon to general registers have high execution throughput
-	// So retrieving from B->val[4][0] risks data for prefetch index
+	// So retrieving from B->val[ 4][ 0] risks data for prefetch index
 	// Taking too long. Copy to a generic register instead.
-	x[16] = x[0];
-
+	x[16] = x[ 0];
 #define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
 #define QR(a, b, c, d)(		\
 	b ^= ROTL(a + d, 7),	\
 	c ^= ROTL(b + a, 9),	\
 	d ^= ROTL(c + b,13),	\
 	a ^= ROTL(d + c,18))
-//for (i = 0; i < 2; i++) {
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//}
 
-//for (; i < 4; i++) { 
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//}
-//for (i = 0; i < 2; i++) {
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//}
+	// Loop fully unrolled
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
 
-//for (; i < 4; i++) { 
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//}
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
+
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
+
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4	
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
 #undef ROTL
 #undef QR
-	x[16] = (x[0] + x[16]) & 1048575;  
+	x[16] = (x[ 0] + x[16]) & (uint32_t) 1048575;  
 	uint32x4x4_t *ptr = (uint32x4x4_t *) &V[x[16]];
 	__builtin_prefetch(ptr);
 	__builtin_prefetch(ptr + 1); 
 	asm("":::"memory");
-	B->val[8][0] = x[0];
-	B->val[8][1] = x[1]; 
-	B->val[8][2] = x[2];  
-	B->val[8][3] = x[3];
+	B->val[ 8][ 0] = x[ 0];
+	B->val[ 8][ 1] = x[ 1]; 
+	B->val[ 8][ 2] = x[ 2];  
+	B->val[ 8][ 3] = x[ 3];
 
-	B->val[9][0] = x[4];  
-	B->val[9][1] = x[5];
-	B->val[9][2] = x[6];  
-	B->val[9][3] = x[7];
+	B->val[ 9][ 0] = x[ 4];  
+	B->val[ 9][ 1] = x[ 5];
+	B->val[ 9][ 2] = x[ 6];  
+	B->val[ 9][ 3] = x[ 7];
 
-	B->val[10][0] = x[8];  
-	B->val[10][1] = x[9];
-	B->val[10][2] = x[10]; 
-	B->val[10][3] = x[11]; 
+	B->val[10][ 0] = x[ 8];  
+	B->val[10][ 1] = x[ 9];
+	B->val[10][ 2] = x[10]; 
+	B->val[10][ 3] = x[11]; 
 
-	B->val[11][0] = x[12]; 
-	B->val[11][1] = x[13]; 
-	B->val[11][2] = x[14]; 
- 	B->val[11][3] = x[15]; 
+	B->val[11][ 0] = x[12]; 
+	B->val[11][ 1] = x[13]; 
+	B->val[11][ 2] = x[14]; 
+ 	B->val[11][ 3] = x[15]; 
 
-	B->val[4] = vaddq_u32(B->val[4], B->val[8]);
-	B->val[5] = vaddq_u32(B->val[5], B->val[9]);
-	B->val[6] = vaddq_u32(B->val[6], B->val[10]);
-	B->val[7] = vaddq_u32(B->val[7], B->val[11]);
+	B->val[ 4] = vaddq_u32(B->val[ 4], B->val[ 8]);
+	B->val[ 5] = vaddq_u32(B->val[ 5], B->val[ 9]);
+	B->val[ 6] = vaddq_u32(B->val[ 6], B->val[10]);
+	B->val[ 7] = vaddq_u32(B->val[ 7], B->val[11]);
 
 	// Give eqxorload precalculated load pointer
 	return (uint32x4x8_t *) ptr;
 }
 
-static inline void salsa20_block_loop2(uint32x4x16_t *B)
+static inline void salsa20_block_loop2(uint32x4x16_t *restrict B)
 {
-	register uint32_t i;
-	uint32_t x[16];
+	uint32_t __attribute__((__aligned__(8))) x[16];
 
 	// Working on right half
-	B->val[4] = veorq_u32(B->val[4], B->val[0]);
-	B->val[5] = veorq_u32(B->val[5], B->val[1]);
-	B->val[6] = veorq_u32(B->val[6], B->val[2]);
-	B->val[7] = veorq_u32(B->val[7], B->val[3]);
+	B->val[ 4] = veorq_u32(B->val[ 4], B->val[ 0]);
+	B->val[ 5] = veorq_u32(B->val[ 5], B->val[ 1]);
+	B->val[ 6] = veorq_u32(B->val[ 6], B->val[ 2]);
+	B->val[ 7] = veorq_u32(B->val[ 7], B->val[ 3]);
 
 	// Neon to generic register transfer stalls the pipeline
 	// Cortex a8 easily 20 cycles. load and store pairs 
 	// using 64 byte L1 cache buffer might be a work around.
-	x[0]  = B->val[4][0];
-	x[1]  = B->val[4][1];
-	x[2]  = B->val[4][2];
-	x[3]  = B->val[4][3];
+	x[ 0] = B->val[ 4][ 0];
+	x[ 1] = B->val[ 4][ 1];
+	x[ 2] = B->val[ 4][ 2];
+	x[ 3] = B->val[ 4][ 3];
 
-	x[4]  = B->val[5][0];
-	x[5]  = B->val[5][1];
-	x[6]  = B->val[5][2];
-	x[7]  = B->val[5][3];
+	x[ 4] = B->val[ 5][ 0];
+	x[ 5] = B->val[ 5][ 1];
+	x[ 6] = B->val[ 5][ 2];
+	x[ 7] = B->val[ 5][ 3];
 
-	x[8]  = B->val[6][0];
-	x[9]  = B->val[6][1];
-	x[10] = B->val[6][2];
-	x[11] = B->val[6][3];
+	x[ 8] = B->val[ 6][ 0];
+	x[ 9] = B->val[ 6][ 1];
+	x[10] = B->val[ 6][ 2];
+	x[11] = B->val[ 6][ 3];
 
-	x[12] = B->val[7][0];
-	x[13] = B->val[7][1];
-	x[14] = B->val[7][2];
-	x[15] = B->val[7][3];
-
+	x[12] = B->val[ 7][ 0];
+	x[13] = B->val[ 7][ 1];
+	x[14] = B->val[ 7][ 2];
+	x[15] = B->val[ 7][ 3];
 #define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
 #define QR(a, b, c, d)(		\
 	b ^= ROTL(a + d, 7),	\
 	c ^= ROTL(b + a, 9),	\
 	d ^= ROTL(c + b,13),	\
 	a ^= ROTL(d + c,18))
-//for (i = 0; i < 2; i++) {
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//}
 
-//for (; i < 4; i++) { 
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//}
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-//}
+		// Loop fully unrolled
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
 
-//for (; i < 4; i++) { 
-		// Odd round
-		QR(x[0], x[4], x[8], x[12]);	// column 1
-		QR(x[5], x[9], x[13], x[1]);	// column 2
-		QR(x[10], x[14], x[2], x[6]);	// column 3
-		QR(x[15], x[3], x[7], x[11]);	// column 4
-		
-		// Even round
-		QR(x[0], x[1], x[2], x[3]);	// row 1
-		QR(x[5], x[6], x[7], x[4]);	// row 2
-		QR(x[10], x[11], x[8], x[9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4	
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
+
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
+
+	// Odd round
+	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+	// Even round
+	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
+	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+	QR(x[15], x[12], x[13], x[14]);	// row 4
 #undef ROTL
 #undef QR
-	B->val[8][0] = x[0];
-	B->val[8][1] = x[1]; 
-	B->val[8][2] = x[2];  
-	B->val[8][3] = x[3];
+	B->val[ 8][ 0] = x[ 0];
+	B->val[ 8][ 1] = x[ 1]; 
+	B->val[ 8][ 2] = x[ 2];  
+	B->val[ 8][ 3] = x[ 3];
 
-	B->val[9][0] = x[4];  
-	B->val[9][1] = x[5];
-	B->val[9][2] = x[6];  
-	B->val[9][3] = x[7];
+	B->val[ 9][ 0] = x[ 4];  
+	B->val[ 9][ 1] = x[ 5];
+	B->val[ 9][ 2] = x[ 6];  
+	B->val[ 9][ 3] = x[ 7];
 
-	B->val[10][0] = x[8];  
-	B->val[10][1] = x[9];
-	B->val[10][2] = x[10]; 
-	B->val[10][3] = x[11]; 
+	B->val[10][ 0] = x[ 8];  
+	B->val[10][ 1] = x[ 9];
+	B->val[10][ 2] = x[10]; 
+	B->val[10][ 3] = x[11]; 
 
-	B->val[11][0] = x[12]; 
-	B->val[11][1] = x[13]; 
-	B->val[11][2] = x[14]; 
- 	B->val[11][3] = x[15];
+	B->val[11][ 0] = x[12]; 
+	B->val[11][ 1] = x[13]; 
+	B->val[11][ 2] = x[14]; 
+ 	B->val[11][ 3] = x[15];
 
-	B->val[4] = vaddq_u32(B->val[4], B->val[8]);
-	B->val[5] = vaddq_u32(B->val[5], B->val[9]);
-	B->val[6] = vaddq_u32(B->val[6], B->val[10]);
-	B->val[7] = vaddq_u32(B->val[7], B->val[11]);
+	B->val[ 4] = vaddq_u32(B->val[ 4], B->val[ 8]);
+	B->val[ 5] = vaddq_u32(B->val[ 5], B->val[ 9]);
+	B->val[ 6] = vaddq_u32(B->val[ 6], B->val[10]);
+	B->val[ 7] = vaddq_u32(B->val[ 7], B->val[11]);
 }
 
-//Neon & Non-temporal Load based eqxor load for scrypt_core(). X must be uint32_t[32]
-static inline void eqxorload64(uint32x4x16_t *X, uint32x4x8_t *V)
+//Neon & Non-temporal Load based eqxor load for scrypt_core(). X must be uint32x4x16_t*
+static inline void eqxorload64(uint32x4x16_t *restrict X, uint32x4x8_t *restrict V)
 {
 	// Using non-temporal load pair. Might help expire L1keep prefetch.
 	asm(
 		"ldnp %q[DST1], %q[DST2], [%[SRC]]" "\n"
-		: [DST1] "=w" (X->val[8]), [DST2] "=w" (X->val[9])
+		: [DST1] "=w" (X->val[ 8]), [DST2] "=w" (X->val[ 9])
 		: [SRC] "r" (V)
 		: "memory"
 	);
@@ -1371,53 +1354,52 @@ static inline void eqxorload64(uint32x4x16_t *X, uint32x4x8_t *V)
 		: "memory"
 	);
 
-	X->val[0] = veorq_u32(X->val[0], X->val[8]);
-	X->val[1] = veorq_u32(X->val[1], X->val[9]);
-	X->val[2] = veorq_u32(X->val[2], X->val[10]);
-	X->val[3] = veorq_u32(X->val[3], X->val[11]);
+	X->val[ 0] = veorq_u32(X->val[ 0], X->val[ 8]);
+	X->val[ 1] = veorq_u32(X->val[ 1], X->val[ 9]);
+	X->val[ 2] = veorq_u32(X->val[ 2], X->val[10]);
+	X->val[ 3] = veorq_u32(X->val[ 3], X->val[11]);
 
-	X->val[4] = veorq_u32(X->val[4], X->val[12]);
-	X->val[5] = veorq_u32(X->val[5], X->val[13]);
-	X->val[6] = veorq_u32(X->val[6], X->val[14]);
-	X->val[7] = veorq_u32(X->val[7], X->val[15]);
-
+	X->val[ 4] = veorq_u32(X->val[ 4], X->val[12]);
+	X->val[ 5] = veorq_u32(X->val[ 5], X->val[13]);
+	X->val[ 6] = veorq_u32(X->val[ 6], X->val[14]);
+	X->val[ 7] = veorq_u32(X->val[ 7], X->val[15]);
 }
 
-//Neon store pair based memcpy alternative for scrypt_core(). a & b must be uint32_t[32]
-static inline void memcpy64(uint32x4x8_t *V, uint32x4x16_t *X)
+//Neon store pair based memcpy alternative for scrypt_core(). X must be uint32x4x16_t*
+static inline void memcpy64(uint32x4x8_t *restrict V, uint32x4x16_t *restrict X)
 {
 	// Using store pair
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC]]" "\n"
 		:  
-		: [DST1] "w" (X->val[0]), [DST2] "w" (X->val[1]), [SRC] "r" (V)
+		: [DST1] "w" (X->val[ 0]), [DST2] "w" (X->val[ 1]), [SRC] "r" (V)
 		: "memory"
 	);
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
 		:  
-		: [DST1] "w" (X->val[2]), [DST2] "w" (X->val[3]), [SRC] "r" (V)
+		: [DST1] "w" (X->val[ 2]), [DST2] "w" (X->val[ 3]), [SRC] "r" (V)
 		: "memory"
 	);
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
 		:  
-		: [DST1] "w" (X->val[4]), [DST2] "w" (X->val[5]), [SRC] "r" (V)
+		: [DST1] "w" (X->val[ 4]), [DST2] "w" (X->val[ 5]), [SRC] "r" (V)
 		: "memory"
 	);
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
 		:
-		: [DST1] "w" (X->val[6]), [DST2] "w" (X->val[7]), [SRC] "r" (V)
+		: [DST1] "w" (X->val[ 6]), [DST2] "w" (X->val[ 7]), [SRC] "r" (V)
 		: "memory"
 	);
 }
 
-static inline void scrypt_core(uint32_t *Xsrc, uint32x4x8_t *V)
+static inline void scrypt_core(uint32_t *Xsrc, uint32x4x8_t *restrict V)
 {
 	// Create neon register work buffer.
 	// Stores, Loads, Adds and some Xor operations performed in asimd/neon
-	uint32x4x16_t X;
+	uint32x4x16_t __attribute__((__aligned__(16))) X;
 
 	// memcpy for accurate work data copy.
 	memcpy(&X, Xsrc, 128);
@@ -1432,13 +1414,13 @@ static inline void scrypt_core(uint32_t *Xsrc, uint32x4x8_t *V)
 	}
 
 	// Calculate scratchpad scratchpad load memory address
-	uint32_t i = X.val[4][0];
+	uint32_t i = X.val[ 4][ 0];
 	i = i & (uint32_t) 1048575;
 
 	Vptr = &V[i];
 
 	// Read loop
-	for (uint32_t i = 0; i < 1048576; i++) {
+	for (i = 0; i < 1048576; i++) {
 		eqxorload64(&X, Vptr);
 		salsa20_block_loop1(&X);
 		Vptr = salsa20_block_loop2_prefetch(&X, V);
@@ -1451,23 +1433,23 @@ static inline void scrypt_core(uint32_t *Xsrc, uint32x4x8_t *V)
 /* Removed unnecessary steps */
 static inline void scrypt_shuffle(uint32_t B[16])
 {
-	uint32_t tmp = B[1];	
-	B[1] = B[5];
-	B[5] = tmp;
-	tmp = B[2];
-	B[2] = B[10];
+	uint32_t tmp = B[ 1];	
+	B[ 1] = B[ 5];
+	B[ 5] = tmp;
+	tmp = B[ 2];
+	B[ 2] = B[10];
 	B[10] = tmp;
-	tmp = B[3];
-	B[3] = B[15];
+	tmp = B[ 3];
+	B[ 3] = B[15];
 	B[15] = tmp;
-	tmp = B[4];
-	B[4] = B[12];
+	tmp = B[ 4];
+	B[ 4] = B[12];
 	B[12] = tmp;
-	tmp = B[7];
-	B[7] = B[11];
+	tmp = B[ 7];
+	B[ 7] = B[11];
 	B[11] = tmp;
-	tmp = B[9];
-	B[9] = B[13];
+	tmp = B[ 9];
+	B[ 9] = B[13];
 	B[13] = tmp;
 }
 
@@ -1486,392 +1468,392 @@ static inline void scrypt_core_1way(uint32_t B[32 * 1], uint32_t *V, uint32_t N)
   	uint32x4x4_t q_a;
 	uint32x4x4_t ba_a, ba_b;
 
-	ba_a.val[0] = vld1q_u32(&B[( 0) / 4]);
-	ba_a.val[1] = vld1q_u32(&B[(16) / 4]);
-	ba_a.val[2] = vld1q_u32(&B[(32) / 4]);
-	ba_a.val[3] = vld1q_u32(&B[(48) / 4]);
+	ba_a.val[ 0] = vld1q_u32(&B[( 0) / 4]);
+	ba_a.val[ 1] = vld1q_u32(&B[(16) / 4]);
+	ba_a.val[ 2] = vld1q_u32(&B[(32) / 4]);
+	ba_a.val[ 3] = vld1q_u32(&B[(48) / 4]);
 
-	ba_b.val[0] = vld1q_u32(&B[(0 + 64 + 0) / 4]);
-	ba_b.val[1] = vld1q_u32(&B[(0 + 64 + 16) / 4]);
-	ba_b.val[2] = vld1q_u32(&B[(0 + 64 + 32) / 4]);
-	ba_b.val[3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
+	ba_b.val[ 0] = vld1q_u32(&B[(0 + 64 + 0) / 4]);
+	ba_b.val[ 1] = vld1q_u32(&B[(0 + 64 + 16) / 4]);
+	ba_b.val[ 2] = vld1q_u32(&B[(0 + 64 + 32) / 4]);
+	ba_b.val[ 3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
 
 	// prep
 
-	vst1q_u32(&V[( 0) / 4], ba_a.val[0]);
-	vst1q_u32(&V[(16) / 4], ba_a.val[1]);
-	vst1q_u32(&V[(32) / 4], ba_a.val[2]);
-	vst1q_u32(&V[(48) / 4], ba_a.val[3]);
+	vst1q_u32(&V[( 0) / 4], ba_a.val[ 0]);
+	vst1q_u32(&V[(16) / 4], ba_a.val[ 1]);
+	vst1q_u32(&V[(32) / 4], ba_a.val[ 2]);
+	vst1q_u32(&V[(48) / 4], ba_a.val[ 3]);
 
-	vst1q_u32(&V[(64) / 4],  ba_b.val[0]);
-	vst1q_u32(&V[(80) / 4],  ba_b.val[1]);
-	vst1q_u32(&V[(96) / 4],  ba_b.val[2]);
-	vst1q_u32(&V[(112) / 4], ba_b.val[3]);
+	vst1q_u32(&V[(64) / 4],  ba_b.val[ 0]);
+	vst1q_u32(&V[(80) / 4],  ba_b.val[ 1]);
+	vst1q_u32(&V[(96) / 4],  ba_b.val[ 2]);
+	vst1q_u32(&V[(112) / 4], ba_b.val[ 3]);
 
 	for (register int n = 0; n < N; n++)
 	{
-		// loop 1 part a
-			vst1q_u32(&V[(     16 + (0 * 4))], ba_b.val[0]);
-		q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
-			vst1q_u32(&V[(     16 + (1 * 4))], ba_b.val[1]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
-			vst1q_u32(&V[(     16 + (2 * 4))], ba_b.val[2]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
-			vst1q_u32(&V[(     16 + (3 * 4))], ba_b.val[3]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
+	// loop 1 part a
+			vst1q_u32(&V[(     16 + (0 * 4))], ba_b.val[ 0]);
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], ba_a.val[ 0]);
+			vst1q_u32(&V[(     16 + (1 * 4))], ba_b.val[ 1]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], ba_a.val[ 1]);
+			vst1q_u32(&V[(     16 + (2 * 4))], ba_b.val[ 2]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], ba_a.val[ 2]);
+			vst1q_u32(&V[(     16 + (3 * 4))], ba_b.val[ 3]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], ba_a.val[ 3]);
 
 		V += 32;
 		ba_a = q_a;
 
 		for (register int i = 0; i < 4; i ++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 			
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 		}
-		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
-		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
-		ba_a.val[2] = vaddq_u32(ba_a.val[2], q_a.val[2]);
-		ba_a.val[3] = vaddq_u32(ba_a.val[3], q_a.val[3]);
+		ba_a.val[ 0] = vaddq_u32(ba_a.val[ 0], q_a.val[ 0]);
+		ba_a.val[ 1] = vaddq_u32(ba_a.val[ 1], q_a.val[ 1]);
+		ba_a.val[ 2] = vaddq_u32(ba_a.val[ 2], q_a.val[ 2]);
+		ba_a.val[ 3] = vaddq_u32(ba_a.val[ 3], q_a.val[ 3]);
 
 		q_a = ba_a;
 
-		// loop 1 part b
-			vst1q_u32(&V[      (0 * 4) ], ba_a.val[0]);
-		q_a.val[0] = veorq_u32(ba_b.val[0], q_a.val[0]);
-			vst1q_u32(&V[      (1 * 4) ], ba_a.val[1]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], q_a.val[1]);
-			vst1q_u32(&V[      (2 * 4) ], ba_a.val[2]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], q_a.val[2]);
-			vst1q_u32(&V[      (3 * 4) ], ba_a.val[3]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
+	// loop 1 part b
+			vst1q_u32(&V[      (0 * 4) ], ba_a.val[ 0]);
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], q_a.val[ 0]);
+			vst1q_u32(&V[      (1 * 4) ], ba_a.val[ 1]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], q_a.val[ 1]);
+			vst1q_u32(&V[      (2 * 4) ], ba_a.val[ 2]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], q_a.val[ 2]);
+			vst1q_u32(&V[      (3 * 4) ], ba_a.val[ 3]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], q_a.val[ 3]);
 		ba_b = q_a;
 
 		for (register int i = 0; i < 4; i ++)
 		{
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 			
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 		}
 
-		ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
-		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
-		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]); 
+		ba_b.val[ 0] = vaddq_u32(q_a.val[ 0], ba_b.val[ 0]);
+		ba_b.val[ 1] = vaddq_u32(q_a.val[ 1], ba_b.val[ 1]);
+		ba_b.val[ 2] = vaddq_u32(q_a.val[ 2], ba_b.val[ 2]);
+		ba_b.val[ 3] = vaddq_u32(q_a.val[ 3], ba_b.val[ 3]); 
 	}
 	V = W;
 
     // loop 2
 
-	uint32_t one =   32 * (1 * (ba_b.val[0][0] & (N - 1)) + 0);
-	q_tmp.val[0] = vld1q_u32(&W[one +  0]);
-	q_tmp.val[1] = vld1q_u32(&W[one +  4]);
-	q_tmp.val[2] = vld1q_u32(&W[one +  8]);
-	q_tmp.val[3] = vld1q_u32(&W[one + 12]);
+	uint32_t one =   32 * (1 * (ba_b.val[ 0][ 0] & (N - 1)) + 0);
+	q_tmp.val[ 0] = vld1q_u32(&W[one +  0]);
+	q_tmp.val[ 1] = vld1q_u32(&W[one +  4]);
+	q_tmp.val[ 2] = vld1q_u32(&W[one +  8]);
+	q_tmp.val[ 3] = vld1q_u32(&W[one + 12]);
 
 	for (register int n = 0; n < N; n++)
 	{
-		// loop 2 part a
+	// loop 2 part a
 
-		ba_a.val[0] = veorq_u32(ba_a.val[0], q_tmp.val[0]);
-			q_tmp.val[0] = vld1q_u32(&W[one + 16 +  0]);
-		ba_a.val[1] = veorq_u32(ba_a.val[1], q_tmp.val[1]);
-			q_tmp.val[1] = vld1q_u32(&W[one + 16 +  4]);
-		ba_a.val[2] = veorq_u32(ba_a.val[2], q_tmp.val[2]);
-			q_tmp.val[2] = vld1q_u32(&W[one + 16 +  8]);
-		ba_a.val[3] = veorq_u32(ba_a.val[3], q_tmp.val[3]);
-		q_tmp.val[3] = vld1q_u32(&W[one + 16 + 12]);
+		ba_a.val[ 0] = veorq_u32(ba_a.val[ 0], q_tmp.val[ 0]);
+			q_tmp.val[ 0] = vld1q_u32(&W[one + 16 +  0]);
+		ba_a.val[ 1] = veorq_u32(ba_a.val[ 1], q_tmp.val[ 1]);
+			q_tmp.val[ 1] = vld1q_u32(&W[one + 16 +  4]);
+		ba_a.val[ 2] = veorq_u32(ba_a.val[ 2], q_tmp.val[ 2]);
+			q_tmp.val[ 2] = vld1q_u32(&W[one + 16 +  8]);
+		ba_a.val[ 3] = veorq_u32(ba_a.val[ 3], q_tmp.val[ 3]);
+		q_tmp.val[ 3] = vld1q_u32(&W[one + 16 + 12]);
 
-			ba_b.val[0] = veorq_u32(ba_b.val[0], q_tmp.val[0]);
-			ba_b.val[1] = veorq_u32(ba_b.val[1], q_tmp.val[1]);
-			ba_b.val[2] = veorq_u32(ba_b.val[2], q_tmp.val[2]);
-			ba_b.val[3] = veorq_u32(ba_b.val[3], q_tmp.val[3]);
+			ba_b.val[ 0] = veorq_u32(ba_b.val[ 0], q_tmp.val[ 0]);
+			ba_b.val[ 1] = veorq_u32(ba_b.val[ 1], q_tmp.val[ 1]);
+			ba_b.val[ 2] = veorq_u32(ba_b.val[ 2], q_tmp.val[ 2]);
+			ba_b.val[ 3] = veorq_u32(ba_b.val[ 3], q_tmp.val[ 3]);
 
-				q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
-				q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
-				q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
-				q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
+				q_a.val[ 0] = veorq_u32(ba_b.val[ 0], ba_a.val[ 0]);
+				q_a.val[ 1] = veorq_u32(ba_b.val[ 1], ba_a.val[ 1]);
+				q_a.val[ 2] = veorq_u32(ba_b.val[ 2], ba_a.val[ 2]);
+				q_a.val[ 3] = veorq_u32(ba_b.val[ 3], ba_a.val[ 3]);
 		ba_a = q_a;
 
 		for (register int i = 0; i < 4; i++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 			
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 
 		}
-		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
-		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
-		ba_a.val[2] = vaddq_u32(ba_a.val[2], q_a.val[2]);
-		ba_a.val[3] = vaddq_u32(ba_a.val[3], q_a.val[3]);
+		ba_a.val[ 0] = vaddq_u32(ba_a.val[ 0], q_a.val[ 0]);
+		ba_a.val[ 1] = vaddq_u32(ba_a.val[ 1], q_a.val[ 1]);
+		ba_a.val[ 2] = vaddq_u32(ba_a.val[ 2], q_a.val[ 2]);
+		ba_a.val[ 3] = vaddq_u32(ba_a.val[ 3], q_a.val[ 3]);
 
 		q_a = ba_a;
 
-		// loop 2 b
+	// loop 2 b
 
-		q_a.val[0] = veorq_u32(ba_b.val[0], q_a.val[0]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], q_a.val[1]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], q_a.val[2]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], q_a.val[ 0]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], q_a.val[ 1]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], q_a.val[ 2]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], q_a.val[ 3]);
 		ba_b = q_a;
 
 		for (register int i = 0; i < 3; i++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 			
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
 		}
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 			
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[3], q_a.val[2]);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 3], q_a.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
 
-			q_tmp.val[2] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[3], q_a.val[0]);
-				ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-					one =	32 * (1 * (ba_b.val[0][0] & (N - 1)) + 0);
+			q_tmp.val[ 2] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 3], q_a.val[ 0]);
+				ba_b.val[ 0] = vaddq_u32(q_a.val[ 0], ba_b.val[ 0]);
+					one =	32 * (1 * (ba_b.val[ 0][ 0] & (N - 1)) + 0);
 					__builtin_prefetch(&W[one + 0]);
 					__builtin_prefetch(&W[one + 8]);
 					__builtin_prefetch(&W[one + 16]);
 					__builtin_prefetch(&W[one + 24]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
 
 		}
 
-		q_tmp.val[0] = vld1q_u32(&W[one +  0]);
-		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
-		q_tmp.val[1] = vld1q_u32(&W[one +  4]);
-		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
-		q_tmp.val[2] = vld1q_u32(&W[one +  8]);
-		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]);
-		q_tmp.val[3] = vld1q_u32(&W[one + 12]);
+		q_tmp.val[ 0] = vld1q_u32(&W[one +  0]);
+		ba_b.val[ 1] = vaddq_u32(q_a.val[ 1], ba_b.val[ 1]);
+		q_tmp.val[ 1] = vld1q_u32(&W[one +  4]);
+		ba_b.val[ 2] = vaddq_u32(q_a.val[ 2], ba_b.val[ 2]);
+		q_tmp.val[ 2] = vld1q_u32(&W[one +  8]);
+		ba_b.val[ 3] = vaddq_u32(q_a.val[ 3], ba_b.val[ 3]);
+		q_tmp.val[ 3] = vld1q_u32(&W[one + 12]);
 	}
 
-	vst1q_u32(&B[0],       ba_a.val[0]);
-	vst1q_u32(&B[4],       ba_a.val[1]);
-	vst1q_u32(&B[8],       ba_a.val[2]);
-	vst1q_u32(&B[12],      ba_a.val[3]);
-	vst1q_u32(&B[16 + 0],  ba_b.val[0]);
-	vst1q_u32(&B[16 + 4],  ba_b.val[1]);
-	vst1q_u32(&B[16 + 8],  ba_b.val[2]);
-	vst1q_u32(&B[16 + 12], ba_b.val[3]);
+	vst1q_u32(&B[ 0],       ba_a.val[ 0]);
+	vst1q_u32(&B[ 4],       ba_a.val[ 1]);
+	vst1q_u32(&B[ 8],       ba_a.val[ 2]);
+	vst1q_u32(&B[12],      ba_a.val[ 3]);
+	vst1q_u32(&B[16 + 0],  ba_b.val[ 0]);
+	vst1q_u32(&B[16 + 4],  ba_b.val[ 1]);
+	vst1q_u32(&B[16 + 8],  ba_b.val[ 2]);
+	vst1q_u32(&B[16 + 12], ba_b.val[ 3]);
 
 	scrypt_shuffle(&B[0  + 0]);
 	scrypt_shuffle(&B[16 + 0]);
@@ -1945,158 +1927,158 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *V/*, int N*/)
 	scrypt_shuffle(&B[0 + 32]);
 	scrypt_shuffle(&B[16 + 32]);
 
-	ba_a.val[0] = vld1q_u32(&B[( 0) / 4]);
-	ba_a.val[1] = vld1q_u32(&B[(16) / 4]);
-	ba_a.val[2] = vld1q_u32(&B[(32) / 4]);
-	ba_a.val[3] = vld1q_u32(&B[(48) / 4]);
+	ba_a.val[ 0] = vld1q_u32(&B[( 0) / 4]);
+	ba_a.val[ 1] = vld1q_u32(&B[(16) / 4]);
+	ba_a.val[ 2] = vld1q_u32(&B[(32) / 4]);
+	ba_a.val[ 3] = vld1q_u32(&B[(48) / 4]);
 
-	ba_b.val[0] = vld1q_u32(&B[(0 + 64 + 0) / 4]);
-	ba_b.val[1] = vld1q_u32(&B[(0 + 64 + 16) / 4]);
-	ba_b.val[2] = vld1q_u32(&B[(0 + 64 + 32) / 4]);
-	ba_b.val[3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
+	ba_b.val[ 0] = vld1q_u32(&B[(0 + 64 + 0) / 4]);
+	ba_b.val[ 1] = vld1q_u32(&B[(0 + 64 + 16) / 4]);
+	ba_b.val[ 2] = vld1q_u32(&B[(0 + 64 + 32) / 4]);
+	ba_b.val[ 3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
 
-	bb_a.val[0] = vld1q_u32(&B[(128 +  0) / 4]);
-	W[0] = ba_a.val[0];
-	bb_a.val[1] = vld1q_u32(&B[(128 + 16) / 4]);
-	W[1] = ba_a.val[1];
-	bb_a.val[2] = vld1q_u32(&B[(128 + 32) / 4]);
-	W[2] = ba_a.val[2];
-	bb_a.val[3] = vld1q_u32(&B[(128 + 48) / 4]);
-	W[3] = ba_a.val[3];
+	bb_a.val[ 0] = vld1q_u32(&B[(128 +  0) / 4]);
+	W[ 0] = ba_a.val[ 0];
+	bb_a.val[ 1] = vld1q_u32(&B[(128 + 16) / 4]);
+	W[ 1] = ba_a.val[ 1];
+	bb_a.val[ 2] = vld1q_u32(&B[(128 + 32) / 4]);
+	W[ 2] = ba_a.val[ 2];
+	bb_a.val[ 3] = vld1q_u32(&B[(128 + 48) / 4]);
+	W[ 3] = ba_a.val[ 3];
 
-	bb_b.val[0] = vld1q_u32(&B[(128 + 64 + 0) / 4]);
-	W[8] = bb_a.val[0];
-	bb_b.val[1] = vld1q_u32(&B[(128 + 64 + 16) / 4]);
-	W[9] = bb_a.val[1];
-	bb_b.val[2] = vld1q_u32(&B[(128 + 64 + 32) / 4]);
-	W[10] = bb_a.val[2];
-	bb_b.val[3] = vld1q_u32(&B[(128 + 64 + 48) / 4]);
-	W[11] = bb_a.val[3];
+	bb_b.val[ 0] = vld1q_u32(&B[(128 + 64 + 0) / 4]);
+	W[ 8] = bb_a.val[ 0];
+	bb_b.val[ 1] = vld1q_u32(&B[(128 + 64 + 16) / 4]);
+	W[ 9] = bb_a.val[ 1];
+	bb_b.val[ 2] = vld1q_u32(&B[(128 + 64 + 32) / 4]);
+	W[10] = bb_a.val[ 2];
+	bb_b.val[ 3] = vld1q_u32(&B[(128 + 64 + 48) / 4]);
+	W[11] = bb_a.val[ 3];
  
 
 	for (register int n = 0; n < 1048576; n++)
 	{
-		// loop 1 part a
-		W[4] = ba_b.val[0];
-		q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
-		W[5] = ba_b.val[1];
-		q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
- 		W[6] = ba_b.val[2];
-		q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
- 		W[7] = ba_b.val[3];
-		q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
- 		W[12] = bb_b.val[0];
-		q_b.val[0] = veorq_u32(bb_b.val[0], bb_a.val[0]);
- 		W[13] = bb_b.val[1];
-		q_b.val[1] = veorq_u32(bb_b.val[1], bb_a.val[1]);
- 		W[14] = bb_b.val[2];	
-		q_b.val[2] = veorq_u32(bb_b.val[2], bb_a.val[2]);
-		W[15] = bb_b.val[3];
-		q_b.val[3] = veorq_u32(bb_b.val[3], bb_a.val[3]);
+	// loop 1 part a
+		W[ 4] = ba_b.val[ 0];
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], ba_a.val[ 0]);
+		W[ 5] = ba_b.val[ 1];
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], ba_a.val[ 1]);
+ 		W[ 6] = ba_b.val[ 2];
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], ba_a.val[ 2]);
+ 		W[ 7] = ba_b.val[ 3];
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], ba_a.val[ 3]);
+ 		W[12] = bb_b.val[ 0];
+		q_b.val[ 0] = veorq_u32(bb_b.val[ 0], bb_a.val[ 0]);
+ 		W[13] = bb_b.val[ 1];
+		q_b.val[ 1] = veorq_u32(bb_b.val[ 1], bb_a.val[ 1]);
+ 		W[14] = bb_b.val[ 2];	
+		q_b.val[ 2] = veorq_u32(bb_b.val[ 2], bb_a.val[ 2]);
+		W[15] = bb_b.val[ 3];
+		q_b.val[ 3] = veorq_u32(bb_b.val[ 3], bb_a.val[ 3]);
  
 		ba_a = q_a;
 		bb_a = q_b;
-		//increments scratchpad pointer
+	//increments scratchpad pointer
 		W += 16;
 
 		for (register int i = 0; i < 4; i ++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
  
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);;
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);;
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 
-			// gcc8 mixes ext with add instructions. Dual issue should still be preserved.
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
+		// gcc8 mixes ext with add instructions. Dual issue should still be preserved.
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
 		}
-		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
-		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
-		ba_a.val[2] = vaddq_u32(ba_a.val[2], q_a.val[2]);
-		ba_a.val[3] = vaddq_u32(ba_a.val[3], q_a.val[3]);
+		ba_a.val[ 0] = vaddq_u32(ba_a.val[ 0], q_a.val[ 0]);
+		ba_a.val[ 1] = vaddq_u32(ba_a.val[ 1], q_a.val[ 1]);
+		ba_a.val[ 2] = vaddq_u32(ba_a.val[ 2], q_a.val[ 2]);
+		ba_a.val[ 3] = vaddq_u32(ba_a.val[ 3], q_a.val[ 3]);
 
-		bb_a.val[0] = vaddq_u32(bb_a.val[0], q_b.val[0]);
-		bb_a.val[1] = vaddq_u32(bb_a.val[1], q_b.val[1]);
-		bb_a.val[2] = vaddq_u32(bb_a.val[2], q_b.val[2]);
-		bb_a.val[3] = vaddq_u32(bb_a.val[3], q_b.val[3]);
+		bb_a.val[ 0] = vaddq_u32(bb_a.val[ 0], q_b.val[ 0]);
+		bb_a.val[ 1] = vaddq_u32(bb_a.val[ 1], q_b.val[ 1]);
+		bb_a.val[ 2] = vaddq_u32(bb_a.val[ 2], q_b.val[ 2]);
+		bb_a.val[ 3] = vaddq_u32(bb_a.val[ 3], q_b.val[ 3]);
 
 		q_a = ba_a;
 		q_b = bb_a;
@@ -2106,128 +2088,128 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *V/*, int N*/)
 			vst1q_u32(&W[      (i * 4) ], ba_a.val[i]);
 			vst1q_u32(&W[(32 + (i * 4))], bb_a.val[i]);
 		}*/
-			//vst4q_u32(&W[      (0 * 4) ], ba_a); //experimented with alternative store
-			//vst4q_u32(&W[(32 + (0 * 4))], bb_a); //experimented with alternative store
+		//vst4q_u32(&W[      (0 * 4) ], ba_a); //experimented with alternative store
+		//vst4q_u32(&W[(32 + (0 * 4))], bb_a); //experimented with alternative store
 
-		// loop 1 part b
- 			W[0] = ba_a.val[0];
-		q_a.val[0] = veorq_u32(ba_b.val[0], q_a.val[0]);
- 			W[1] = ba_a.val[1];
-		q_a.val[1] = veorq_u32(ba_b.val[1], q_a.val[1]);
- 			W[2] = ba_a.val[2];
-		q_a.val[2] = veorq_u32(ba_b.val[2], q_a.val[2]);
-			W[3] = ba_a.val[3];
-		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
+	// loop 1 part b
+ 			W[ 0] = ba_a.val[ 0];
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], q_a.val[ 0]);
+ 			W[ 1] = ba_a.val[ 1];
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], q_a.val[ 1]);
+ 			W[ 2] = ba_a.val[ 2];
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], q_a.val[ 2]);
+			W[ 3] = ba_a.val[ 3];
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], q_a.val[ 3]);
  
-			W[8] = bb_a.val[0];
-		q_b.val[0] = veorq_u32(bb_b.val[0], q_b.val[0]);
- 			W[9] = bb_a.val[1];
-		q_b.val[1] = veorq_u32(bb_b.val[1], q_b.val[1]);
- 			W[10] = bb_a.val[2];
-		q_b.val[2] = veorq_u32(bb_b.val[2], q_b.val[2]);
- 			W[11] = bb_a.val[3];
-		q_b.val[3] = veorq_u32(bb_b.val[3], q_b.val[3]);
+			W[ 8] = bb_a.val[ 0];
+		q_b.val[ 0] = veorq_u32(bb_b.val[ 0], q_b.val[ 0]);
+ 			W[ 9] = bb_a.val[ 1];
+		q_b.val[ 1] = veorq_u32(bb_b.val[ 1], q_b.val[ 1]);
+ 			W[10] = bb_a.val[ 2];
+		q_b.val[ 2] = veorq_u32(bb_b.val[ 2], q_b.val[ 2]);
+ 			W[11] = bb_a.val[ 3];
+		q_b.val[ 3] = veorq_u32(bb_b.val[ 3], q_b.val[ 3]);
 		
 		ba_b = q_a;		
 		bb_b = q_b;
 
 		for (register int i = 0; i < 4; i ++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);	
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);	
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
 		}
 
-		ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
-		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
-		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]);
-		bb_b.val[0] = vaddq_u32(q_b.val[0], bb_b.val[0]);
-		bb_b.val[1] = vaddq_u32(q_b.val[1], bb_b.val[1]);
-		bb_b.val[2] = vaddq_u32(q_b.val[2], bb_b.val[2]);
-		bb_b.val[3] = vaddq_u32(q_b.val[3], bb_b.val[3]);
+		ba_b.val[ 0] = vaddq_u32(q_a.val[ 0], ba_b.val[ 0]);
+		ba_b.val[ 1] = vaddq_u32(q_a.val[ 1], ba_b.val[ 1]);
+		ba_b.val[ 2] = vaddq_u32(q_a.val[ 2], ba_b.val[ 2]);
+		ba_b.val[ 3] = vaddq_u32(q_a.val[ 3], ba_b.val[ 3]);
+		bb_b.val[ 0] = vaddq_u32(q_b.val[ 0], bb_b.val[ 0]);
+		bb_b.val[ 1] = vaddq_u32(q_b.val[ 1], bb_b.val[ 1]);
+		bb_b.val[ 2] = vaddq_u32(q_b.val[ 2], bb_b.val[ 2]);
+		bb_b.val[ 3] = vaddq_u32(q_b.val[ 3], bb_b.val[ 3]);
 
 		/*for (int i = 0; i < 4; i++) // stores unrolled moved to start of loop 1
 		{
@@ -2238,372 +2220,372 @@ static inline void scrypt_core_2way(uint32_t B[32 * 2], uint32_t *V/*, int N*/)
 
  	for (register int n = 0; n < 1048576; n++)
 	{
-		register int one = 32 * (2 * (ba_b.val[0][0] & 1048575));
-		register int two = 32 * (2 * (bb_b.val[0][0] & 1048575) + 1);
+		register int one = 32 * (2 * (ba_b.val[ 0][ 0] & 1048575));
+		register int two = 32 * (2 * (bb_b.val[ 0][ 0] & 1048575) + 1);
 		uint32x4_t *oneneon __attribute__((__aligned__(64))) = (uint32x4_t *) __builtin_assume_aligned(&V[one], 64);
 		uint32x4_t *twoneon __attribute__((__aligned__(64))) = (uint32x4_t *) __builtin_assume_aligned(&V[two], 64);
-		// loop 2 part a
-		ba_a.val[0] ^= *oneneon++;
-		ba_a.val[1] ^= *oneneon++;
-		ba_a.val[2] ^= *oneneon++;
-		ba_a.val[3] ^= *oneneon++;
+	// loop 2 part a
+		ba_a.val[ 0] ^= *oneneon++;
+		ba_a.val[ 1] ^= *oneneon++;
+		ba_a.val[ 2] ^= *oneneon++;
+		ba_a.val[ 3] ^= *oneneon++;
 
-		ba_b.val[0] ^= *oneneon++;
-		ba_b.val[1] ^= *oneneon++;
-		ba_b.val[2] ^= *oneneon++;
-		ba_b.val[3] ^= *oneneon++;
+		ba_b.val[ 0] ^= *oneneon++;
+		ba_b.val[ 1] ^= *oneneon++;
+		ba_b.val[ 2] ^= *oneneon++;
+		ba_b.val[ 3] ^= *oneneon++;
 		 
-		bb_a.val[0] ^= *twoneon++;
-		bb_a.val[1] ^= *twoneon++;
-		bb_a.val[2] ^= *twoneon++;
-		bb_a.val[3] ^= *twoneon++;
+		bb_a.val[ 0] ^= *twoneon++;
+		bb_a.val[ 1] ^= *twoneon++;
+		bb_a.val[ 2] ^= *twoneon++;
+		bb_a.val[ 3] ^= *twoneon++;
 
-		bb_b.val[0] ^= *twoneon++;
-		bb_b.val[1] ^= *twoneon++;
-		bb_b.val[2] ^= *twoneon++;
-		bb_b.val[3] ^= *twoneon++;
+		bb_b.val[ 0] ^= *twoneon++;
+		bb_b.val[ 1] ^= *twoneon++;
+		bb_b.val[ 2] ^= *twoneon++;
+		bb_b.val[ 3] ^= *twoneon++;
 
-		q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], ba_a.val[ 0]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], ba_a.val[ 1]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], ba_a.val[ 2]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], ba_a.val[ 3]);
 
-		q_b.val[0] = veorq_u32(bb_b.val[0], bb_a.val[0]);
-		q_b.val[1] = veorq_u32(bb_b.val[1], bb_a.val[1]);
-		q_b.val[2] = veorq_u32(bb_b.val[2], bb_a.val[2]);
-		q_b.val[3] = veorq_u32(bb_b.val[3], bb_a.val[3]);
+		q_b.val[ 0] = veorq_u32(bb_b.val[ 0], bb_a.val[ 0]);
+		q_b.val[ 1] = veorq_u32(bb_b.val[ 1], bb_a.val[ 1]);
+		q_b.val[ 2] = veorq_u32(bb_b.val[ 2], bb_a.val[ 2]);
+		q_b.val[ 3] = veorq_u32(bb_b.val[ 3], bb_a.val[ 3]);
 
 		ba_a = q_a;
 		bb_a = q_b;
 
 		for (register int i = 0; i < 4; i++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);	
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);	
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
 		}
-		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
-		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
-		ba_a.val[2] = vaddq_u32(ba_a.val[2], q_a.val[2]);
-		ba_a.val[3] = vaddq_u32(ba_a.val[3], q_a.val[3]);
+		ba_a.val[ 0] = vaddq_u32(ba_a.val[ 0], q_a.val[ 0]);
+		ba_a.val[ 1] = vaddq_u32(ba_a.val[ 1], q_a.val[ 1]);
+		ba_a.val[ 2] = vaddq_u32(ba_a.val[ 2], q_a.val[ 2]);
+		ba_a.val[ 3] = vaddq_u32(ba_a.val[ 3], q_a.val[ 3]);
 
-		bb_a.val[0] = vaddq_u32(bb_a.val[0], q_b.val[0]);
-		bb_a.val[1] = vaddq_u32(bb_a.val[1], q_b.val[1]);
-		bb_a.val[2] = vaddq_u32(bb_a.val[2], q_b.val[2]);
-		bb_a.val[3] = vaddq_u32(bb_a.val[3], q_b.val[3]);
+		bb_a.val[ 0] = vaddq_u32(bb_a.val[ 0], q_b.val[ 0]);
+		bb_a.val[ 1] = vaddq_u32(bb_a.val[ 1], q_b.val[ 1]);
+		bb_a.val[ 2] = vaddq_u32(bb_a.val[ 2], q_b.val[ 2]);
+		bb_a.val[ 3] = vaddq_u32(bb_a.val[ 3], q_b.val[ 3]);
 
 		q_a = ba_a;
 		q_b = bb_a;
 
-		// loop 2 b
-		q_a.val[0] = veorq_u32(ba_b.val[0], q_a.val[0]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], q_a.val[1]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], q_a.val[2]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
+	// loop 2 b
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], q_a.val[ 0]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], q_a.val[ 1]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], q_a.val[ 2]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], q_a.val[ 3]);
 
-		q_b.val[0] = veorq_u32(bb_b.val[0], q_b.val[0]);
-		q_b.val[1] = veorq_u32(bb_b.val[1], q_b.val[1]);
-		q_b.val[2] = veorq_u32(bb_b.val[2], q_b.val[2]);
-		q_b.val[3] = veorq_u32(bb_b.val[3], q_b.val[3]);
+		q_b.val[ 0] = veorq_u32(bb_b.val[ 0], q_b.val[ 0]);
+		q_b.val[ 1] = veorq_u32(bb_b.val[ 1], q_b.val[ 1]);
+		q_b.val[ 2] = veorq_u32(bb_b.val[ 2], q_b.val[ 2]);
+		q_b.val[ 3] = veorq_u32(bb_b.val[ 3], q_b.val[ 3]);
 
 		ba_b = q_a;
 		bb_b = q_b;
 
 		for (register int i = 0; i < 3; i++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);;
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);;
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
 		}
 		{
-			//1
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
-			//2
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
-			//3
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
-			//4
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
+		//1
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
+		//2
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
+		//3
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
+		//4
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
 			
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			//5
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 25);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_b.val[1] = veorq_u32(q_tmp.val[3], q_b.val[1]);
-			//6
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_b.val[2] = veorq_u32(q_tmp.val[3], q_b.val[2]);
-			//7
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_b.val[3] = veorq_u32(q_tmp.val[3], q_b.val[3]);
-			//8
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[3] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_tmp.val[3] = vsriq_n_u32(q_tmp.val[3], q_tmp.val[2], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_b.val[0] = veorq_u32(q_tmp.val[3], q_b.val[0]);
-				bb_b.val[0] = vaddq_u32(q_b.val[0], bb_b.val[0]);
-				ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-					one =	32 * (2 * (ba_b.val[0][0] & 1048575));	
-					two =	32 * (2 * (bb_b.val[0][0] & 1048575) + 1);
-					// Cast pointer suitable for 64 byte cache line size
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
+		//5
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 25);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 3], q_b.val[ 1]);
+		//6
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 3], q_b.val[ 2]);
+		//7
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 3], q_b.val[ 3]);
+		//8
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 3] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_tmp.val[ 3] = vsriq_n_u32(q_tmp.val[ 3], q_tmp.val[ 2], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 3], q_b.val[ 0]);
+				bb_b.val[ 0] = vaddq_u32(q_b.val[ 0], bb_b.val[ 0]);
+				ba_b.val[ 0] = vaddq_u32(q_a.val[ 0], ba_b.val[ 0]);
+					one =	32 * (2 * (ba_b.val[ 0][ 0] & 1048575));	
+					two =	32 * (2 * (bb_b.val[ 0][ 0] & 1048575) + 1);
+				// Cast pointer suitable for 64 byte cache line size
 					__builtin_prefetch((uint32x4x4_t *) &V[one]);
 					__builtin_prefetch((uint32x4x4_t *) &V[one + 16]);
 					__builtin_prefetch((uint32x4x4_t *) &V[two]);
 					__builtin_prefetch((uint32x4x4_t *) &V[two + 16]);
 
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
 		}
 
-		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
-		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
-		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]);
-		bb_b.val[1] = vaddq_u32(q_b.val[1], bb_b.val[1]);
-		bb_b.val[2] = vaddq_u32(q_b.val[2], bb_b.val[2]);
-		bb_b.val[3] = vaddq_u32(q_b.val[3], bb_b.val[3]);
+		ba_b.val[ 1] = vaddq_u32(q_a.val[ 1], ba_b.val[ 1]);
+		ba_b.val[ 2] = vaddq_u32(q_a.val[ 2], ba_b.val[ 2]);
+		ba_b.val[ 3] = vaddq_u32(q_a.val[ 3], ba_b.val[ 3]);
+		bb_b.val[ 1] = vaddq_u32(q_b.val[ 1], bb_b.val[ 1]);
+		bb_b.val[ 2] = vaddq_u32(q_b.val[ 2], bb_b.val[ 2]);
+		bb_b.val[ 3] = vaddq_u32(q_b.val[ 3], bb_b.val[ 3]);
 	}
 
-	vst1q_u32(&B[0],	ba_a.val[0]);
-	vst1q_u32(&B[4],	ba_a.val[1]);
-	vst1q_u32(&B[8],	ba_a.val[2]);
-	vst1q_u32(&B[12],	ba_a.val[3]);
+	vst1q_u32(&B[ 0],	ba_a.val[ 0]);
+	vst1q_u32(&B[ 4],	ba_a.val[ 1]);
+	vst1q_u32(&B[ 8],	ba_a.val[ 2]);
+	vst1q_u32(&B[12],	ba_a.val[ 3]);
 
-	vst1q_u32(&B[16 + 0],	ba_b.val[0]);
-	vst1q_u32(&B[16 + 4],	ba_b.val[1]);
-	vst1q_u32(&B[16 + 8],	ba_b.val[2]);
-	vst1q_u32(&B[16 + 12],	ba_b.val[3]);
+	vst1q_u32(&B[16 + 0],	ba_b.val[ 0]);
+	vst1q_u32(&B[16 + 4],	ba_b.val[ 1]);
+	vst1q_u32(&B[16 + 8],	ba_b.val[ 2]);
+	vst1q_u32(&B[16 + 12],	ba_b.val[ 3]);
 
-	vst1q_u32(&B[32 + 0],	bb_a.val[0]);
-	vst1q_u32(&B[32 + 4],	bb_a.val[1]);
-	vst1q_u32(&B[32 + 8],	bb_a.val[2]);
-	vst1q_u32(&B[32 + 12],	bb_a.val[3]);
+	vst1q_u32(&B[32 + 0],	bb_a.val[ 0]);
+	vst1q_u32(&B[32 + 4],	bb_a.val[ 1]);
+	vst1q_u32(&B[32 + 8],	bb_a.val[ 2]);
+	vst1q_u32(&B[32 + 12],	bb_a.val[ 3]);
 
-	vst1q_u32(&B[32 + 16 + 0],  bb_b.val[0]);
-	vst1q_u32(&B[32 + 16 + 4],  bb_b.val[1]);
-	vst1q_u32(&B[32 + 16 + 8],  bb_b.val[2]);
-	vst1q_u32(&B[32 + 16 + 12], bb_b.val[3]);
+	vst1q_u32(&B[32 + 16 + 0],  bb_b.val[ 0]);
+	vst1q_u32(&B[32 + 16 + 4],  bb_b.val[ 1]);
+	vst1q_u32(&B[32 + 16 + 8],  bb_b.val[ 2]);
+	vst1q_u32(&B[32 + 16 + 12], bb_b.val[ 3]);
 
 	scrypt_shuffle(&B[0  + 0]);
 	scrypt_shuffle(&B[16 + 0]);
@@ -2632,81 +2614,81 @@ static inline void scrypt_core_3way(uint32_t B[32 * 3], uint32_t *V, uint32_t N)
 	uint32x4x4_t q_a, q_b, q_c, q_tmp;
 	uint32x4x4_t ba_a, bb_a, bc_a, ba_b, bb_b, bc_b;
 
-	ba_a.val[0] = vld1q_u32(&B[( 0) / 4]);
-	ba_a.val[1] = vld1q_u32(&B[(16) / 4]);
-	ba_a.val[2] = vld1q_u32(&B[(32) / 4]);
-	ba_a.val[3] = vld1q_u32(&B[(48) / 4]);
-	ba_b.val[0] = vld1q_u32(&B[(0 + 64 + 0) / 4]);
-	ba_b.val[1] = vld1q_u32(&B[(0 + 64 + 16) / 4]);
-	ba_b.val[2] = vld1q_u32(&B[(0 + 64 + 32) / 4]);
-	ba_b.val[3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
+	ba_a.val[ 0] = vld1q_u32(&B[( 0) / 4]);
+	ba_a.val[ 1] = vld1q_u32(&B[(16) / 4]);
+	ba_a.val[ 2] = vld1q_u32(&B[(32) / 4]);
+	ba_a.val[ 3] = vld1q_u32(&B[(48) / 4]);
+	ba_b.val[ 0] = vld1q_u32(&B[(0 + 64 + 0) / 4]);
+	ba_b.val[ 1] = vld1q_u32(&B[(0 + 64 + 16) / 4]);
+	ba_b.val[ 2] = vld1q_u32(&B[(0 + 64 + 32) / 4]);
+	ba_b.val[ 3] = vld1q_u32(&B[(0 + 64 + 48) / 4]);
 
-	bb_a.val[0] = vld1q_u32(&B[(128 +  0) / 4]);
-	bb_a.val[1] = vld1q_u32(&B[(128 + 16) / 4]);
-	bb_a.val[2] = vld1q_u32(&B[(128 + 32) / 4]);
-	bb_a.val[3] = vld1q_u32(&B[(128 + 48) / 4]);
-	bb_b.val[0] = vld1q_u32(&B[(128 + 64 + 0) / 4]);
-	bb_b.val[1] = vld1q_u32(&B[(128 + 64 + 16) / 4]);
-	bb_b.val[2] = vld1q_u32(&B[(128 + 64 + 32) / 4]);
-	bb_b.val[3] = vld1q_u32(&B[(128 + 64 + 48) / 4]);
+	bb_a.val[ 0] = vld1q_u32(&B[(128 +  0) / 4]);
+	bb_a.val[ 1] = vld1q_u32(&B[(128 + 16) / 4]);
+	bb_a.val[ 2] = vld1q_u32(&B[(128 + 32) / 4]);
+	bb_a.val[ 3] = vld1q_u32(&B[(128 + 48) / 4]);
+	bb_b.val[ 0] = vld1q_u32(&B[(128 + 64 + 0) / 4]);
+	bb_b.val[ 1] = vld1q_u32(&B[(128 + 64 + 16) / 4]);
+	bb_b.val[ 2] = vld1q_u32(&B[(128 + 64 + 32) / 4]);
+	bb_b.val[ 3] = vld1q_u32(&B[(128 + 64 + 48) / 4]);
 	
-	bc_a.val[0] = vld1q_u32(&B[(256 + 0) / 4]);
-	bc_a.val[1] = vld1q_u32(&B[(256 + 16) / 4]);
-	bc_a.val[2] = vld1q_u32(&B[(256 + 32) / 4]);
-	bc_a.val[3] = vld1q_u32(&B[(256 + 48) / 4]);
-	bc_b.val[0] = vld1q_u32(&B[(256 + 64 + 0) / 4]);
-	bc_b.val[1] = vld1q_u32(&B[(256 + 64 + 16) / 4]);
-	bc_b.val[2] = vld1q_u32(&B[(256 + 64 + 32) / 4]);
-	bc_b.val[3] = vld1q_u32(&B[(256 + 64 + 48) / 4]);
+	bc_a.val[ 0] = vld1q_u32(&B[(256 + 0) / 4]);
+	bc_a.val[ 1] = vld1q_u32(&B[(256 + 16) / 4]);
+	bc_a.val[ 2] = vld1q_u32(&B[(256 + 32) / 4]);
+	bc_a.val[ 3] = vld1q_u32(&B[(256 + 48) / 4]);
+	bc_b.val[ 0] = vld1q_u32(&B[(256 + 64 + 0) / 4]);
+	bc_b.val[ 1] = vld1q_u32(&B[(256 + 64 + 16) / 4]);
+	bc_b.val[ 2] = vld1q_u32(&B[(256 + 64 + 32) / 4]);
+	bc_b.val[ 3] = vld1q_u32(&B[(256 + 64 + 48) / 4]);
 
 	// prep
 
-	vst1q_u32(&V[( 0) / 4], ba_a.val[0]);
-	vst1q_u32(&V[(16) / 4], ba_a.val[1]);
-	vst1q_u32(&V[(32) / 4], ba_a.val[2]);
-	vst1q_u32(&V[(48) / 4], ba_a.val[3]);
-	vst1q_u32(&V[(64) / 4],  ba_b.val[0]);
-	vst1q_u32(&V[(80) / 4],  ba_b.val[1]);
-	vst1q_u32(&V[(96) / 4],  ba_b.val[2]);
-	vst1q_u32(&V[(112) / 4], ba_b.val[3]);
+	vst1q_u32(&V[( 0) / 4], ba_a.val[ 0]);
+	vst1q_u32(&V[(16) / 4], ba_a.val[ 1]);
+	vst1q_u32(&V[(32) / 4], ba_a.val[ 2]);
+	vst1q_u32(&V[(48) / 4], ba_a.val[ 3]);
+	vst1q_u32(&V[(64) / 4],  ba_b.val[ 0]);
+	vst1q_u32(&V[(80) / 4],  ba_b.val[ 1]);
+	vst1q_u32(&V[(96) / 4],  ba_b.val[ 2]);
+	vst1q_u32(&V[(112) / 4], ba_b.val[ 3]);
 
-	vst1q_u32(&V[(128 +  0) / 4], bb_a.val[0]);
-	vst1q_u32(&V[(128 + 16) / 4], bb_a.val[1]);
-	vst1q_u32(&V[(128 + 32) / 4], bb_a.val[2]);
-	vst1q_u32(&V[(128 + 48) / 4], bb_a.val[3]);
-	vst1q_u32(&V[(128 + 64) / 4],  bb_b.val[0]);
-	vst1q_u32(&V[(128 + 80) / 4],  bb_b.val[1]);
-	vst1q_u32(&V[(128 + 96) / 4],  bb_b.val[2]);
-	vst1q_u32(&V[(128 + 112) / 4], bb_b.val[3]);
+	vst1q_u32(&V[(128 +  0) / 4], bb_a.val[ 0]);
+	vst1q_u32(&V[(128 + 16) / 4], bb_a.val[ 1]);
+	vst1q_u32(&V[(128 + 32) / 4], bb_a.val[ 2]);
+	vst1q_u32(&V[(128 + 48) / 4], bb_a.val[ 3]);
+	vst1q_u32(&V[(128 + 64) / 4],  bb_b.val[ 0]);
+	vst1q_u32(&V[(128 + 80) / 4],  bb_b.val[ 1]);
+	vst1q_u32(&V[(128 + 96) / 4],  bb_b.val[ 2]);
+	vst1q_u32(&V[(128 + 112) / 4], bb_b.val[ 3]);
 
-	vst1q_u32(&V[(256 +  0) / 4], bc_a.val[0]);
-	vst1q_u32(&V[(256 + 16) / 4], bc_a.val[1]);
-	vst1q_u32(&V[(256 + 32) / 4], bc_a.val[2]);
-	vst1q_u32(&V[(256 + 48) / 4], bc_a.val[3]);
-	vst1q_u32(&V[(256 + 64) / 4], bc_b.val[0]);
-	vst1q_u32(&V[(256 + 80) / 4], bc_b.val[1]);
-	vst1q_u32(&V[(256 + 96) / 4], bc_b.val[2]);
-	vst1q_u32(&V[(256 + 112) / 4],bc_b.val[3]);
+	vst1q_u32(&V[(256 +  0) / 4], bc_a.val[ 0]);
+	vst1q_u32(&V[(256 + 16) / 4], bc_a.val[ 1]);
+	vst1q_u32(&V[(256 + 32) / 4], bc_a.val[ 2]);
+	vst1q_u32(&V[(256 + 48) / 4], bc_a.val[ 3]);
+	vst1q_u32(&V[(256 + 64) / 4], bc_b.val[ 0]);
+	vst1q_u32(&V[(256 + 80) / 4], bc_b.val[ 1]);
+	vst1q_u32(&V[(256 + 96) / 4], bc_b.val[ 2]);
+	vst1q_u32(&V[(256 + 112) / 4],bc_b.val[ 3]);
 
 	V += 96;
 
 	for (int n = 0; n < N; n++)
 	{
-		// loop 1 part a
-		q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
+	// loop 1 part a
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], ba_a.val[ 0]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], ba_a.val[ 1]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], ba_a.val[ 2]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], ba_a.val[ 3]);
 
-		q_b.val[0] = veorq_u32(bb_b.val[0], bb_a.val[0]);
-		q_b.val[1] = veorq_u32(bb_b.val[1], bb_a.val[1]);
-		q_b.val[2] = veorq_u32(bb_b.val[2], bb_a.val[2]);
-		q_b.val[3] = veorq_u32(bb_b.val[3], bb_a.val[3]);
+		q_b.val[ 0] = veorq_u32(bb_b.val[ 0], bb_a.val[ 0]);
+		q_b.val[ 1] = veorq_u32(bb_b.val[ 1], bb_a.val[ 1]);
+		q_b.val[ 2] = veorq_u32(bb_b.val[ 2], bb_a.val[ 2]);
+		q_b.val[ 3] = veorq_u32(bb_b.val[ 3], bb_a.val[ 3]);
 
-		q_c.val[0] = veorq_u32(bc_b.val[0], bc_a.val[0]);
-		q_c.val[1] = veorq_u32(bc_b.val[1], bc_a.val[1]);
-		q_c.val[2] = veorq_u32(bc_b.val[2], bc_a.val[2]);
-		q_c.val[3] = veorq_u32(bc_b.val[3], bc_a.val[3]);
+		q_c.val[ 0] = veorq_u32(bc_b.val[ 0], bc_a.val[ 0]);
+		q_c.val[ 1] = veorq_u32(bc_b.val[ 1], bc_a.val[ 1]);
+		q_c.val[ 2] = veorq_u32(bc_b.val[ 2], bc_a.val[ 2]);
+		q_c.val[ 3] = veorq_u32(bc_b.val[ 3], bc_a.val[ 3]);
 
 		ba_a = q_a;
 		bb_a = q_b;
@@ -2714,148 +2696,148 @@ static inline void scrypt_core_3way(uint32_t B[32 * 3], uint32_t *V, uint32_t N)
 
 		for (int i = 0; i < 4; i ++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);  	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 1]); 
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7); 				
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);				
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 			
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 3);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 			
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 1);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 1);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 		}
-		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
-		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
-		ba_a.val[2] = vaddq_u32(ba_a.val[2], q_a.val[2]);
-		ba_a.val[3] = vaddq_u32(ba_a.val[3], q_a.val[3]);
+		ba_a.val[ 0] = vaddq_u32(ba_a.val[ 0], q_a.val[ 0]);
+		ba_a.val[ 1] = vaddq_u32(ba_a.val[ 1], q_a.val[ 1]);
+		ba_a.val[ 2] = vaddq_u32(ba_a.val[ 2], q_a.val[ 2]);
+		ba_a.val[ 3] = vaddq_u32(ba_a.val[ 3], q_a.val[ 3]);
 
 		q_a = ba_a;
 
-		bb_a.val[0] = vaddq_u32(bb_a.val[0], q_b.val[0]);
-		bb_a.val[1] = vaddq_u32(bb_a.val[1], q_b.val[1]);
-		bb_a.val[2] = vaddq_u32(bb_a.val[2], q_b.val[2]);
-		bb_a.val[3] = vaddq_u32(bb_a.val[3], q_b.val[3]);
+		bb_a.val[ 0] = vaddq_u32(bb_a.val[ 0], q_b.val[ 0]);
+		bb_a.val[ 1] = vaddq_u32(bb_a.val[ 1], q_b.val[ 1]);
+		bb_a.val[ 2] = vaddq_u32(bb_a.val[ 2], q_b.val[ 2]);
+		bb_a.val[ 3] = vaddq_u32(bb_a.val[ 3], q_b.val[ 3]);
 
 		q_b = bb_a;
 
-		bc_a.val[0] = vaddq_u32(bc_a.val[0], q_c.val[0]);
-		bc_a.val[1] = vaddq_u32(bc_a.val[1], q_c.val[1]);
-		bc_a.val[2] = vaddq_u32(bc_a.val[2], q_c.val[2]);
-		bc_a.val[3] = vaddq_u32(bc_a.val[3], q_c.val[3]);
+		bc_a.val[ 0] = vaddq_u32(bc_a.val[ 0], q_c.val[ 0]);
+		bc_a.val[ 1] = vaddq_u32(bc_a.val[ 1], q_c.val[ 1]);
+		bc_a.val[ 2] = vaddq_u32(bc_a.val[ 2], q_c.val[ 2]);
+		bc_a.val[ 3] = vaddq_u32(bc_a.val[ 3], q_c.val[ 3]);
 
 		q_c = bc_a;
 		
@@ -2866,166 +2848,166 @@ static inline void scrypt_core_3way(uint32_t B[32 * 3], uint32_t *V, uint32_t N)
 			vst1q_u32(&V[(64 + (i * 4))], bc_a.val[i]);
 		}
 
-		// loop 1 part b
+	// loop 1 part b
 
-		q_a.val[0] = veorq_u32(ba_b.val[0], q_a.val[0]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], q_a.val[1]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], q_a.val[2]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], q_a.val[ 0]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], q_a.val[ 1]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], q_a.val[ 2]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], q_a.val[ 3]);
 		ba_b = q_a;
 
-		q_b.val[0] = veorq_u32(bb_b.val[0], q_b.val[0]);
-		q_b.val[1] = veorq_u32(bb_b.val[1], q_b.val[1]);
-		q_b.val[2] = veorq_u32(bb_b.val[2], q_b.val[2]);
-		q_b.val[3] = veorq_u32(bb_b.val[3], q_b.val[3]);
+		q_b.val[ 0] = veorq_u32(bb_b.val[ 0], q_b.val[ 0]);
+		q_b.val[ 1] = veorq_u32(bb_b.val[ 1], q_b.val[ 1]);
+		q_b.val[ 2] = veorq_u32(bb_b.val[ 2], q_b.val[ 2]);
+		q_b.val[ 3] = veorq_u32(bb_b.val[ 3], q_b.val[ 3]);
 		bb_b = q_b;
 
-		q_c.val[0] = veorq_u32(bc_b.val[0], q_c.val[0]);
-		q_c.val[1] = veorq_u32(bc_b.val[1], q_c.val[1]);
-		q_c.val[2] = veorq_u32(bc_b.val[2], q_c.val[2]);
-		q_c.val[3] = veorq_u32(bc_b.val[3], q_c.val[3]);
+		q_c.val[ 0] = veorq_u32(bc_b.val[ 0], q_c.val[ 0]);
+		q_c.val[ 1] = veorq_u32(bc_b.val[ 1], q_c.val[ 1]);
+		q_c.val[ 2] = veorq_u32(bc_b.val[ 2], q_c.val[ 2]);
+		q_c.val[ 3] = veorq_u32(bc_b.val[ 3], q_c.val[ 3]);
 		bc_b = q_c;
 
 
 		for (int i = 0; i < 4; i ++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);  	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 1]); 
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7); 				
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);				
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 			
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 3);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 			
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 1);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 1);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 		}
 
-		ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
-		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
-		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]);
-		bb_b.val[0] = vaddq_u32(q_b.val[0], bb_b.val[0]);
-		bb_b.val[1] = vaddq_u32(q_b.val[1], bb_b.val[1]);
-		bb_b.val[2] = vaddq_u32(q_b.val[2], bb_b.val[2]);
-		bb_b.val[3] = vaddq_u32(q_b.val[3], bb_b.val[3]);
-		bc_b.val[0] = vaddq_u32(q_c.val[0], bc_b.val[0]);
-		bc_b.val[1] = vaddq_u32(q_c.val[1], bc_b.val[1]);
-		bc_b.val[2] = vaddq_u32(q_c.val[2], bc_b.val[2]);
-		bc_b.val[3] = vaddq_u32(q_c.val[3], bc_b.val[3]);
+		ba_b.val[ 0] = vaddq_u32(q_a.val[ 0], ba_b.val[ 0]);
+		ba_b.val[ 1] = vaddq_u32(q_a.val[ 1], ba_b.val[ 1]);
+		ba_b.val[ 2] = vaddq_u32(q_a.val[ 2], ba_b.val[ 2]);
+		ba_b.val[ 3] = vaddq_u32(q_a.val[ 3], ba_b.val[ 3]);
+		bb_b.val[ 0] = vaddq_u32(q_b.val[ 0], bb_b.val[ 0]);
+		bb_b.val[ 1] = vaddq_u32(q_b.val[ 1], bb_b.val[ 1]);
+		bb_b.val[ 2] = vaddq_u32(q_b.val[ 2], bb_b.val[ 2]);
+		bb_b.val[ 3] = vaddq_u32(q_b.val[ 3], bb_b.val[ 3]);
+		bc_b.val[ 0] = vaddq_u32(q_c.val[ 0], bc_b.val[ 0]);
+		bc_b.val[ 1] = vaddq_u32(q_c.val[ 1], bc_b.val[ 1]);
+		bc_b.val[ 2] = vaddq_u32(q_c.val[ 2], bc_b.val[ 2]);
+		bc_b.val[ 3] = vaddq_u32(q_c.val[ 3], bc_b.val[ 3]);
 		for (int i = 0; i < 4; i++)
 		{
 			vst1q_u32(&V[(     16 + (i * 4))], ba_b.val[i]);
@@ -3040,564 +3022,564 @@ static inline void scrypt_core_3way(uint32_t B[32 * 3], uint32_t *V, uint32_t N)
 
 	uint32x4x4_t x;
 
-	uint32_t one =   32 * (3 * (ba_b.val[0][0] & (N - 1)) + 0);
-	uint32_t two =   32 * (3 * (bb_b.val[0][0] & (N - 1)) + 1);
-	uint32_t three = 32 * (3 * (bc_b.val[0][0] & (N - 1)) + 2);
-	q_tmp.val[0] = vld1q_u32(&W[one +  0]);
-	q_tmp.val[1] = vld1q_u32(&W[one +  4]);
-	q_tmp.val[2] = vld1q_u32(&W[one +  8]);
-	q_tmp.val[3] = vld1q_u32(&W[one + 12]);
+	uint32_t one =   32 * (3 * (ba_b.val[ 0][ 0] & (N - 1)) + 0);
+	uint32_t two =   32 * (3 * (bb_b.val[ 0][ 0] & (N - 1)) + 1);
+	uint32_t three = 32 * (3 * (bc_b.val[ 0][ 0] & (N - 1)) + 2);
+	q_tmp.val[ 0] = vld1q_u32(&W[one +  0]);
+	q_tmp.val[ 1] = vld1q_u32(&W[one +  4]);
+	q_tmp.val[ 2] = vld1q_u32(&W[one +  8]);
+	q_tmp.val[ 3] = vld1q_u32(&W[one + 12]);
 
 	for (int n = 0; n < N; n++)
 	{
-		// loop 2 part a
+	// loop 2 part a
 
-		ba_a.val[0] = veorq_u32(ba_a.val[0], q_tmp.val[0]);
-			q_tmp.val[0] = vld1q_u32(&W[one + 16 +  0]);
-		ba_a.val[1] = veorq_u32(ba_a.val[1], q_tmp.val[1]);
-			q_tmp.val[1] = vld1q_u32(&W[one + 16 +  4]);
-		ba_a.val[2] = veorq_u32(ba_a.val[2], q_tmp.val[2]);
-			q_tmp.val[2] = vld1q_u32(&W[one + 16 +  8]);
-		ba_a.val[3] = veorq_u32(ba_a.val[3], q_tmp.val[3]);
+		ba_a.val[ 0] = veorq_u32(ba_a.val[ 0], q_tmp.val[ 0]);
+			q_tmp.val[ 0] = vld1q_u32(&W[one + 16 +  0]);
+		ba_a.val[ 1] = veorq_u32(ba_a.val[ 1], q_tmp.val[ 1]);
+			q_tmp.val[ 1] = vld1q_u32(&W[one + 16 +  4]);
+		ba_a.val[ 2] = veorq_u32(ba_a.val[ 2], q_tmp.val[ 2]);
+			q_tmp.val[ 2] = vld1q_u32(&W[one + 16 +  8]);
+		ba_a.val[ 3] = veorq_u32(ba_a.val[ 3], q_tmp.val[ 3]);
 
-			ba_b.val[0] = veorq_u32(ba_b.val[0], q_tmp.val[0]);
-			ba_b.val[1] = veorq_u32(ba_b.val[1], q_tmp.val[1]);
-			q_tmp.val[3] = vld1q_u32(&W[one + 16 + 12]);
-			ba_b.val[2] = veorq_u32(ba_b.val[2], q_tmp.val[2]);
-			ba_b.val[3] = veorq_u32(ba_b.val[3], q_tmp.val[3]);
-		q_tmp.val[0] = vld1q_u32(&W[two +  0]);
-				q_a.val[0] = veorq_u32(ba_b.val[0], ba_a.val[0]);
-				q_a.val[1] = veorq_u32(ba_b.val[1], ba_a.val[1]);
-		q_tmp.val[1] = vld1q_u32(&W[two +  4]);
-				q_a.val[2] = veorq_u32(ba_b.val[2], ba_a.val[2]);
-				q_a.val[3] = veorq_u32(ba_b.val[3], ba_a.val[3]);
-		q_tmp.val[2] = vld1q_u32(&W[two +  8]);
+			ba_b.val[ 0] = veorq_u32(ba_b.val[ 0], q_tmp.val[ 0]);
+			ba_b.val[ 1] = veorq_u32(ba_b.val[ 1], q_tmp.val[ 1]);
+			q_tmp.val[ 3] = vld1q_u32(&W[one + 16 + 12]);
+			ba_b.val[ 2] = veorq_u32(ba_b.val[ 2], q_tmp.val[ 2]);
+			ba_b.val[ 3] = veorq_u32(ba_b.val[ 3], q_tmp.val[ 3]);
+		q_tmp.val[ 0] = vld1q_u32(&W[two +  0]);
+				q_a.val[ 0] = veorq_u32(ba_b.val[ 0], ba_a.val[ 0]);
+				q_a.val[ 1] = veorq_u32(ba_b.val[ 1], ba_a.val[ 1]);
+		q_tmp.val[ 1] = vld1q_u32(&W[two +  4]);
+				q_a.val[ 2] = veorq_u32(ba_b.val[ 2], ba_a.val[ 2]);
+				q_a.val[ 3] = veorq_u32(ba_b.val[ 3], ba_a.val[ 3]);
+		q_tmp.val[ 2] = vld1q_u32(&W[two +  8]);
 		ba_a = q_a;
 
-		q_tmp.val[3] = vld1q_u32(&W[two + 12]);
+		q_tmp.val[ 3] = vld1q_u32(&W[two + 12]);
 
-		bb_a.val[0] = veorq_u32(bb_a.val[0], q_tmp.val[0]);
-			q_tmp.val[0] = vld1q_u32(&W[two + 16 +  0]);
-		bb_a.val[1] = veorq_u32(bb_a.val[1], q_tmp.val[1]);
-			q_tmp.val[1] = vld1q_u32(&W[two + 16 +  4]);
-		bb_a.val[2] = veorq_u32(bb_a.val[2], q_tmp.val[2]);
-			q_tmp.val[2] = vld1q_u32(&W[two + 16 +  8]);
-		bb_a.val[3] = veorq_u32(bb_a.val[3], q_tmp.val[3]);
-			bb_b.val[0] = veorq_u32(bb_b.val[0], q_tmp.val[0]);
-			q_tmp.val[3] = vld1q_u32(&W[two + 16 + 12]);
-			bb_b.val[1] = veorq_u32(bb_b.val[1], q_tmp.val[1]);
-		q_tmp.val[0] = vld1q_u32(&W[three +  0]);
-			bb_b.val[2] = veorq_u32(bb_b.val[2], q_tmp.val[2]);
-			bb_b.val[3] = veorq_u32(bb_b.val[3], q_tmp.val[3]);
-		q_tmp.val[1] = vld1q_u32(&W[three +  4]);
-				q_b.val[0] = veorq_u32(bb_b.val[0], bb_a.val[0]);
-				q_b.val[1] = veorq_u32(bb_b.val[1], bb_a.val[1]);
-		q_tmp.val[2] = vld1q_u32(&W[three +  8]);
-				q_b.val[2] = veorq_u32(bb_b.val[2], bb_a.val[2]);
-				q_b.val[3] = veorq_u32(bb_b.val[3], bb_a.val[3]);
-		q_tmp.val[3] = vld1q_u32(&W[three + 12]);
+		bb_a.val[ 0] = veorq_u32(bb_a.val[ 0], q_tmp.val[ 0]);
+			q_tmp.val[ 0] = vld1q_u32(&W[two + 16 +  0]);
+		bb_a.val[ 1] = veorq_u32(bb_a.val[ 1], q_tmp.val[ 1]);
+			q_tmp.val[ 1] = vld1q_u32(&W[two + 16 +  4]);
+		bb_a.val[ 2] = veorq_u32(bb_a.val[ 2], q_tmp.val[ 2]);
+			q_tmp.val[ 2] = vld1q_u32(&W[two + 16 +  8]);
+		bb_a.val[ 3] = veorq_u32(bb_a.val[ 3], q_tmp.val[ 3]);
+			bb_b.val[ 0] = veorq_u32(bb_b.val[ 0], q_tmp.val[ 0]);
+			q_tmp.val[ 3] = vld1q_u32(&W[two + 16 + 12]);
+			bb_b.val[ 1] = veorq_u32(bb_b.val[ 1], q_tmp.val[ 1]);
+		q_tmp.val[ 0] = vld1q_u32(&W[three +  0]);
+			bb_b.val[ 2] = veorq_u32(bb_b.val[ 2], q_tmp.val[ 2]);
+			bb_b.val[ 3] = veorq_u32(bb_b.val[ 3], q_tmp.val[ 3]);
+		q_tmp.val[ 1] = vld1q_u32(&W[three +  4]);
+				q_b.val[ 0] = veorq_u32(bb_b.val[ 0], bb_a.val[ 0]);
+				q_b.val[ 1] = veorq_u32(bb_b.val[ 1], bb_a.val[ 1]);
+		q_tmp.val[ 2] = vld1q_u32(&W[three +  8]);
+				q_b.val[ 2] = veorq_u32(bb_b.val[ 2], bb_a.val[ 2]);
+				q_b.val[ 3] = veorq_u32(bb_b.val[ 3], bb_a.val[ 3]);
+		q_tmp.val[ 3] = vld1q_u32(&W[three + 12]);
 		bb_a = q_b;
 
-		bc_a.val[0] = veorq_u32(bc_a.val[0], q_tmp.val[0]);
-			q_tmp.val[0] = vld1q_u32(&W[three + 16 +  0]);
-		bc_a.val[1] = veorq_u32(bc_a.val[1], q_tmp.val[1]);
-			q_tmp.val[1] = vld1q_u32(&W[three + 16 +  4]);
-		bc_a.val[2] = veorq_u32(bc_a.val[2], q_tmp.val[2]);
-			q_tmp.val[2] = vld1q_u32(&W[three + 16 +  8]);
-		bc_a.val[3] = veorq_u32(bc_a.val[3], q_tmp.val[3]);
-			bc_b.val[0] = veorq_u32(bc_b.val[0], q_tmp.val[0]);
-			q_tmp.val[3] = vld1q_u32(&W[three + 16 + 12]);
-			bc_b.val[1] = veorq_u32(bc_b.val[1], q_tmp.val[1]);
-			bc_b.val[2] = veorq_u32(bc_b.val[2], q_tmp.val[2]);
-			bc_b.val[3] = veorq_u32(bc_b.val[3], q_tmp.val[3]);
-				q_c.val[0] = veorq_u32(bc_b.val[0], bc_a.val[0]);
-				q_c.val[1] = veorq_u32(bc_b.val[1], bc_a.val[1]);
-				q_c.val[2] = veorq_u32(bc_b.val[2], bc_a.val[2]);
-				q_c.val[3] = veorq_u32(bc_b.val[3], bc_a.val[3]);
+		bc_a.val[ 0] = veorq_u32(bc_a.val[ 0], q_tmp.val[ 0]);
+			q_tmp.val[ 0] = vld1q_u32(&W[three + 16 +  0]);
+		bc_a.val[ 1] = veorq_u32(bc_a.val[ 1], q_tmp.val[ 1]);
+			q_tmp.val[ 1] = vld1q_u32(&W[three + 16 +  4]);
+		bc_a.val[ 2] = veorq_u32(bc_a.val[ 2], q_tmp.val[ 2]);
+			q_tmp.val[ 2] = vld1q_u32(&W[three + 16 +  8]);
+		bc_a.val[ 3] = veorq_u32(bc_a.val[ 3], q_tmp.val[ 3]);
+			bc_b.val[ 0] = veorq_u32(bc_b.val[ 0], q_tmp.val[ 0]);
+			q_tmp.val[ 3] = vld1q_u32(&W[three + 16 + 12]);
+			bc_b.val[ 1] = veorq_u32(bc_b.val[ 1], q_tmp.val[ 1]);
+			bc_b.val[ 2] = veorq_u32(bc_b.val[ 2], q_tmp.val[ 2]);
+			bc_b.val[ 3] = veorq_u32(bc_b.val[ 3], q_tmp.val[ 3]);
+				q_c.val[ 0] = veorq_u32(bc_b.val[ 0], bc_a.val[ 0]);
+				q_c.val[ 1] = veorq_u32(bc_b.val[ 1], bc_a.val[ 1]);
+				q_c.val[ 2] = veorq_u32(bc_b.val[ 2], bc_a.val[ 2]);
+				q_c.val[ 3] = veorq_u32(bc_b.val[ 3], bc_a.val[ 3]);
 		bc_a = q_c;
 
 		for (int i = 0; i < 4; i++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);  	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 1]); 
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7); 				
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);				
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 			
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 3);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 			
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 1);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 1);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 		}
-		ba_a.val[0] = vaddq_u32(ba_a.val[0], q_a.val[0]);
-		ba_a.val[1] = vaddq_u32(ba_a.val[1], q_a.val[1]);
-		ba_a.val[2] = vaddq_u32(ba_a.val[2], q_a.val[2]);
-		ba_a.val[3] = vaddq_u32(ba_a.val[3], q_a.val[3]);
+		ba_a.val[ 0] = vaddq_u32(ba_a.val[ 0], q_a.val[ 0]);
+		ba_a.val[ 1] = vaddq_u32(ba_a.val[ 1], q_a.val[ 1]);
+		ba_a.val[ 2] = vaddq_u32(ba_a.val[ 2], q_a.val[ 2]);
+		ba_a.val[ 3] = vaddq_u32(ba_a.val[ 3], q_a.val[ 3]);
 
 		q_a = ba_a;
 
-		bb_a.val[0] = vaddq_u32(bb_a.val[0], q_b.val[0]);
-		bb_a.val[1] = vaddq_u32(bb_a.val[1], q_b.val[1]);
-		bb_a.val[2] = vaddq_u32(bb_a.val[2], q_b.val[2]);
-		bb_a.val[3] = vaddq_u32(bb_a.val[3], q_b.val[3]);
+		bb_a.val[ 0] = vaddq_u32(bb_a.val[ 0], q_b.val[ 0]);
+		bb_a.val[ 1] = vaddq_u32(bb_a.val[ 1], q_b.val[ 1]);
+		bb_a.val[ 2] = vaddq_u32(bb_a.val[ 2], q_b.val[ 2]);
+		bb_a.val[ 3] = vaddq_u32(bb_a.val[ 3], q_b.val[ 3]);
 		q_b = bb_a;
 
-		bc_a.val[0] = vaddq_u32(bc_a.val[0], q_c.val[0]);
-		bc_a.val[1] = vaddq_u32(bc_a.val[1], q_c.val[1]);
-		bc_a.val[2] = vaddq_u32(bc_a.val[2], q_c.val[2]);
-		bc_a.val[3] = vaddq_u32(bc_a.val[3], q_c.val[3]);
+		bc_a.val[ 0] = vaddq_u32(bc_a.val[ 0], q_c.val[ 0]);
+		bc_a.val[ 1] = vaddq_u32(bc_a.val[ 1], q_c.val[ 1]);
+		bc_a.val[ 2] = vaddq_u32(bc_a.val[ 2], q_c.val[ 2]);
+		bc_a.val[ 3] = vaddq_u32(bc_a.val[ 3], q_c.val[ 3]);
 		q_c = bc_a;
 
-		// loop 2 b
+	// loop 2 b
 
-		q_a.val[0] = veorq_u32(ba_b.val[0], q_a.val[0]);
-		q_a.val[1] = veorq_u32(ba_b.val[1], q_a.val[1]);
-		q_a.val[2] = veorq_u32(ba_b.val[2], q_a.val[2]);
-		q_a.val[3] = veorq_u32(ba_b.val[3], q_a.val[3]);
+		q_a.val[ 0] = veorq_u32(ba_b.val[ 0], q_a.val[ 0]);
+		q_a.val[ 1] = veorq_u32(ba_b.val[ 1], q_a.val[ 1]);
+		q_a.val[ 2] = veorq_u32(ba_b.val[ 2], q_a.val[ 2]);
+		q_a.val[ 3] = veorq_u32(ba_b.val[ 3], q_a.val[ 3]);
 		ba_b = q_a;
 
-		q_b.val[0] = veorq_u32(bb_b.val[0], q_b.val[0]);
-		q_b.val[1] = veorq_u32(bb_b.val[1], q_b.val[1]);
-		q_b.val[2] = veorq_u32(bb_b.val[2], q_b.val[2]);
-		q_b.val[3] = veorq_u32(bb_b.val[3], q_b.val[3]);
+		q_b.val[ 0] = veorq_u32(bb_b.val[ 0], q_b.val[ 0]);
+		q_b.val[ 1] = veorq_u32(bb_b.val[ 1], q_b.val[ 1]);
+		q_b.val[ 2] = veorq_u32(bb_b.val[ 2], q_b.val[ 2]);
+		q_b.val[ 3] = veorq_u32(bb_b.val[ 3], q_b.val[ 3]);
 		bb_b = q_b;
 
-		q_c.val[0] = veorq_u32(bc_b.val[0], q_c.val[0]);
-		q_c.val[1] = veorq_u32(bc_b.val[1], q_c.val[1]);
-		q_c.val[2] = veorq_u32(bc_b.val[2], q_c.val[2]);
-		q_c.val[3] = veorq_u32(bc_b.val[3], q_c.val[3]);
+		q_c.val[ 0] = veorq_u32(bc_b.val[ 0], q_c.val[ 0]);
+		q_c.val[ 1] = veorq_u32(bc_b.val[ 1], q_c.val[ 1]);
+		q_c.val[ 2] = veorq_u32(bc_b.val[ 2], q_c.val[ 2]);
+		q_c.val[ 3] = veorq_u32(bc_b.val[ 3], q_c.val[ 3]);
 		bc_b = q_c;
 
 
 		for (int i = 0; i < 3; i++)
 		{
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);  	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 1]); 
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7); 				
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);				
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 			
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 3);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 			
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
 			
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 1);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 3);
 
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 1);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 		}
 		{
-			//1
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[1]);  	
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);	
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[1]);  	
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[1]); 
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7); 				
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);				
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			//2
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
-			//3
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
+		//1
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 1]);  	
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);	
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 1]);  	
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 1]); 
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7); 				
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);				
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
+		//2
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
+		//3
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
 			
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 3);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 3);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 3);
-			//4
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 3);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 3);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 3);
+		//4
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
 			
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-			//5
-			q_tmp.val[0] = vaddq_u32(q_a.val[0], q_a.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 7);
-			q_tmp.val[2] = vaddq_u32(q_b.val[0], q_b.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 25);
-			q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 1);
-			q_a.val[1] = veorq_u32(q_tmp.val[1], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 7);
-			q_tmp.val[3] = vaddq_u32(q_c.val[0], q_c.val[3]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 25);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 1);
-			q_b.val[1] = veorq_u32(q_tmp.val[1], q_b.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 7);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 25);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 1);
-			q_c.val[1] = veorq_u32(q_tmp.val[1], q_c.val[1]);
-			//6
-			q_tmp.val[0] = vaddq_u32(q_a.val[1], q_a.val[0]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 9);
-			q_tmp.val[2] = vaddq_u32(q_b.val[1], q_b.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 23);
-			q_a.val[2] = veorq_u32(q_tmp.val[1], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 9);
-			q_tmp.val[3] = vaddq_u32(q_c.val[1], q_c.val[0]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 23);
-			q_b.val[2] = veorq_u32(q_tmp.val[1], q_b.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 9);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 23);
-			q_c.val[2] = veorq_u32(q_tmp.val[1], q_c.val[2]);
-			//7
-			q_tmp.val[0] = vaddq_u32(q_a.val[2], q_a.val[1]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 13);
-			q_tmp.val[2] = vaddq_u32(q_b.val[2], q_b.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 19);
-			q_a.val[3] = veorq_u32(q_tmp.val[1], q_a.val[3]);
-				q_a.val[1] = vextq_u32(q_a.val[1], q_a.val[1], 3);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 13);
-			q_tmp.val[3] = vaddq_u32(q_c.val[2], q_c.val[1]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 19);
-			q_b.val[3] = veorq_u32(q_tmp.val[1], q_b.val[3]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 13);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 19);
-			q_c.val[3] = veorq_u32(q_tmp.val[1], q_c.val[3]);
-			q_b.val[1] = vextq_u32(q_b.val[1], q_b.val[1], 3);
-			q_c.val[1] = vextq_u32(q_c.val[1], q_c.val[1], 3);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
+		//5
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 0], q_a.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 7);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 0], q_b.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 25);
+			q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 1);
+			q_a.val[ 1] = veorq_u32(q_tmp.val[ 1], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 7);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 0], q_c.val[ 3]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 25);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 1);
+			q_b.val[ 1] = veorq_u32(q_tmp.val[ 1], q_b.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 7);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 25);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 1);
+			q_c.val[ 1] = veorq_u32(q_tmp.val[ 1], q_c.val[ 1]);
+		//6
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 1], q_a.val[ 0]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 9);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 1], q_b.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 23);
+			q_a.val[ 2] = veorq_u32(q_tmp.val[ 1], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 9);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 1], q_c.val[ 0]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 23);
+			q_b.val[ 2] = veorq_u32(q_tmp.val[ 1], q_b.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 9);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 23);
+			q_c.val[ 2] = veorq_u32(q_tmp.val[ 1], q_c.val[ 2]);
+		//7
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 2], q_a.val[ 1]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 13);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 2], q_b.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 19);
+			q_a.val[ 3] = veorq_u32(q_tmp.val[ 1], q_a.val[ 3]);
+				q_a.val[ 1] = vextq_u32(q_a.val[ 1], q_a.val[ 1], 3);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 13);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 2], q_c.val[ 1]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 19);
+			q_b.val[ 3] = veorq_u32(q_tmp.val[ 1], q_b.val[ 3]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 13);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 19);
+			q_c.val[ 3] = veorq_u32(q_tmp.val[ 1], q_c.val[ 3]);
+			q_b.val[ 1] = vextq_u32(q_b.val[ 1], q_b.val[ 1], 3);
+			q_c.val[ 1] = vextq_u32(q_c.val[ 1], q_c.val[ 1], 3);
 
-			//8
-			q_tmp.val[0] = vaddq_u32(q_a.val[3], q_a.val[2]);
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[0], 18);
-			q_tmp.val[2] = vaddq_u32(q_b.val[3], q_b.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[0], 14);
-			q_a.val[0] = veorq_u32(q_tmp.val[1], q_a.val[0]);
-				ba_b.val[0] = vaddq_u32(q_a.val[0], ba_b.val[0]);
-					one =	32 * (3 * (ba_b.val[0][0] & (N - 1)) + 0);
+		//8
+			q_tmp.val[ 0] = vaddq_u32(q_a.val[ 3], q_a.val[ 2]);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 0], 18);
+			q_tmp.val[ 2] = vaddq_u32(q_b.val[ 3], q_b.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 0], 14);
+			q_a.val[ 0] = veorq_u32(q_tmp.val[ 1], q_a.val[ 0]);
+				ba_b.val[ 0] = vaddq_u32(q_a.val[ 0], ba_b.val[ 0]);
+					one =	32 * (3 * (ba_b.val[ 0][ 0] & (N - 1)) + 0);
 					__builtin_prefetch(&W[one + 0]);
 					__builtin_prefetch(&W[one + 8]);
 					__builtin_prefetch(&W[one + 16]);
 					__builtin_prefetch(&W[one + 24]);
 			
-			q_a.val[2] = vextq_u32(q_a.val[2], q_a.val[2], 2);
-			q_b.val[2] = vextq_u32(q_b.val[2], q_b.val[2], 2);
+			q_a.val[ 2] = vextq_u32(q_a.val[ 2], q_a.val[ 2], 2);
+			q_b.val[ 2] = vextq_u32(q_b.val[ 2], q_b.val[ 2], 2);
 			
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[2], 18);
-			q_tmp.val[3] = vaddq_u32(q_c.val[3], q_c.val[2]);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[2], 14);
-			q_c.val[2] = vextq_u32(q_c.val[2], q_c.val[2], 2);
-			q_b.val[3] = vextq_u32(q_b.val[3], q_b.val[3], 1);
-			q_b.val[0] = veorq_u32(q_tmp.val[1], q_b.val[0]);
-				bb_b.val[0] = vaddq_u32(q_b.val[0], bb_b.val[0]);
-					two =	32 * (3 * (bb_b.val[0][0] & (N - 1)) + 1);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 2], 18);
+			q_tmp.val[ 3] = vaddq_u32(q_c.val[ 3], q_c.val[ 2]);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 2], 14);
+			q_c.val[ 2] = vextq_u32(q_c.val[ 2], q_c.val[ 2], 2);
+			q_b.val[ 3] = vextq_u32(q_b.val[ 3], q_b.val[ 3], 1);
+			q_b.val[ 0] = veorq_u32(q_tmp.val[ 1], q_b.val[ 0]);
+				bb_b.val[ 0] = vaddq_u32(q_b.val[ 0], bb_b.val[ 0]);
+					two =	32 * (3 * (bb_b.val[ 0][ 0] & (N - 1)) + 1);
 					__builtin_prefetch(&W[two + 0]);
 					__builtin_prefetch(&W[two + 8]);
 					__builtin_prefetch(&W[two + 16]);
 					__builtin_prefetch(&W[two + 24]);
 
-			q_tmp.val[1] = vshlq_n_u32(q_tmp.val[3], 18);
-			q_tmp.val[1] = vsriq_n_u32(q_tmp.val[1], q_tmp.val[3], 14);
-			q_a.val[3] = vextq_u32(q_a.val[3], q_a.val[3], 1);
-			q_c.val[3] = vextq_u32(q_c.val[3], q_c.val[3], 1);
-			q_c.val[0] = veorq_u32(q_tmp.val[1], q_c.val[0]);
-				bc_b.val[0] = vaddq_u32(q_c.val[0], bc_b.val[0]);
-					three = 32 * (3 * (bc_b.val[0][0] & (N - 1)) + 2);
+			q_tmp.val[ 1] = vshlq_n_u32(q_tmp.val[ 3], 18);
+			q_tmp.val[ 1] = vsriq_n_u32(q_tmp.val[ 1], q_tmp.val[ 3], 14);
+			q_a.val[ 3] = vextq_u32(q_a.val[ 3], q_a.val[ 3], 1);
+			q_c.val[ 3] = vextq_u32(q_c.val[ 3], q_c.val[ 3], 1);
+			q_c.val[ 0] = veorq_u32(q_tmp.val[ 1], q_c.val[ 0]);
+				bc_b.val[ 0] = vaddq_u32(q_c.val[ 0], bc_b.val[ 0]);
+					three = 32 * (3 * (bc_b.val[ 0][ 0] & (N - 1)) + 2);
 					__builtin_prefetch(&W[three + 0]);
 					__builtin_prefetch(&W[three + 8]);
 					__builtin_prefetch(&W[three + 16]);
 					__builtin_prefetch(&W[three + 24]);
 		}
 
-		q_tmp.val[0] = vld1q_u32(&W[one +  0]);
-		ba_b.val[1] = vaddq_u32(q_a.val[1], ba_b.val[1]);
-		ba_b.val[2] = vaddq_u32(q_a.val[2], ba_b.val[2]);
-		ba_b.val[3] = vaddq_u32(q_a.val[3], ba_b.val[3]);
-		q_tmp.val[1] = vld1q_u32(&W[one +  4]);
-		bb_b.val[1] = vaddq_u32(q_b.val[1], bb_b.val[1]);
-		bb_b.val[2] = vaddq_u32(q_b.val[2], bb_b.val[2]);
-		bb_b.val[3] = vaddq_u32(q_b.val[3], bb_b.val[3]);
-		q_tmp.val[2] = vld1q_u32(&W[one +  8]);
-		bc_b.val[1] = vaddq_u32(q_c.val[1], bc_b.val[1]);
-		bc_b.val[2] = vaddq_u32(q_c.val[2], bc_b.val[2]);
-		bc_b.val[3] = vaddq_u32(q_c.val[3], bc_b.val[3]);
-		q_tmp.val[3] = vld1q_u32(&W[one + 12]);
+		q_tmp.val[ 0] = vld1q_u32(&W[one +  0]);
+		ba_b.val[ 1] = vaddq_u32(q_a.val[ 1], ba_b.val[ 1]);
+		ba_b.val[ 2] = vaddq_u32(q_a.val[ 2], ba_b.val[ 2]);
+		ba_b.val[ 3] = vaddq_u32(q_a.val[ 3], ba_b.val[ 3]);
+		q_tmp.val[ 1] = vld1q_u32(&W[one +  4]);
+		bb_b.val[ 1] = vaddq_u32(q_b.val[ 1], bb_b.val[ 1]);
+		bb_b.val[ 2] = vaddq_u32(q_b.val[ 2], bb_b.val[ 2]);
+		bb_b.val[ 3] = vaddq_u32(q_b.val[ 3], bb_b.val[ 3]);
+		q_tmp.val[ 2] = vld1q_u32(&W[one +  8]);
+		bc_b.val[ 1] = vaddq_u32(q_c.val[ 1], bc_b.val[ 1]);
+		bc_b.val[ 2] = vaddq_u32(q_c.val[ 2], bc_b.val[ 2]);
+		bc_b.val[ 3] = vaddq_u32(q_c.val[ 3], bc_b.val[ 3]);
+		q_tmp.val[ 3] = vld1q_u32(&W[one + 12]);
 	}
 
-	vst1q_u32(&B[0],       ba_a.val[0]);
-	vst1q_u32(&B[4],       ba_a.val[1]);
-	vst1q_u32(&B[8],       ba_a.val[2]);
-	vst1q_u32(&B[12],      ba_a.val[3]);
-	vst1q_u32(&B[16 + 0],  ba_b.val[0]);
-	vst1q_u32(&B[16 + 4],  ba_b.val[1]);
-	vst1q_u32(&B[16 + 8],  ba_b.val[2]);
-	vst1q_u32(&B[16 + 12], ba_b.val[3]);
+	vst1q_u32(&B[ 0],       ba_a.val[ 0]);
+	vst1q_u32(&B[ 4],       ba_a.val[ 1]);
+	vst1q_u32(&B[ 8],       ba_a.val[ 2]);
+	vst1q_u32(&B[12],      ba_a.val[ 3]);
+	vst1q_u32(&B[16 + 0],  ba_b.val[ 0]);
+	vst1q_u32(&B[16 + 4],  ba_b.val[ 1]);
+	vst1q_u32(&B[16 + 8],  ba_b.val[ 2]);
+	vst1q_u32(&B[16 + 12], ba_b.val[ 3]);
 
-	vst1q_u32(&B[32 + 0],  		bb_a.val[0]);
-	vst1q_u32(&B[32 + 4],  		bb_a.val[1]);
-	vst1q_u32(&B[32 + 8],  		bb_a.val[2]);
-	vst1q_u32(&B[32 + 12], 		bb_a.val[3]);
-	vst1q_u32(&B[32 + 16 + 0],  bb_b.val[0]);
-	vst1q_u32(&B[32 + 16 + 4],  bb_b.val[1]);
-	vst1q_u32(&B[32 + 16 + 8],  bb_b.val[2]);
-	vst1q_u32(&B[32 + 16 + 12], bb_b.val[3]);
+	vst1q_u32(&B[32 + 0],  		bb_a.val[ 0]);
+	vst1q_u32(&B[32 + 4],  		bb_a.val[ 1]);
+	vst1q_u32(&B[32 + 8],  		bb_a.val[ 2]);
+	vst1q_u32(&B[32 + 12], 		bb_a.val[ 3]);
+	vst1q_u32(&B[32 + 16 + 0],  bb_b.val[ 0]);
+	vst1q_u32(&B[32 + 16 + 4],  bb_b.val[ 1]);
+	vst1q_u32(&B[32 + 16 + 8],  bb_b.val[ 2]);
+	vst1q_u32(&B[32 + 16 + 12], bb_b.val[ 3]);
 
-	vst1q_u32(&B[64 + 0],  		bc_a.val[0]);
-	vst1q_u32(&B[64 + 4],  		bc_a.val[1]);
-	vst1q_u32(&B[64 + 8],  		bc_a.val[2]);
-	vst1q_u32(&B[64 + 12], 		bc_a.val[3]);
-	vst1q_u32(&B[64 + 16 + 0],  bc_b.val[0]);
-	vst1q_u32(&B[64 + 16 + 4],  bc_b.val[1]);
-	vst1q_u32(&B[64 + 16 + 8],  bc_b.val[2]);
-	vst1q_u32(&B[64 + 16 + 12], bc_b.val[3]);
+	vst1q_u32(&B[64 + 0],  		bc_a.val[ 0]);
+	vst1q_u32(&B[64 + 4],  		bc_a.val[ 1]);
+	vst1q_u32(&B[64 + 8],  		bc_a.val[ 2]);
+	vst1q_u32(&B[64 + 12], 		bc_a.val[ 3]);
+	vst1q_u32(&B[64 + 16 + 0],  bc_b.val[ 0]);
+	vst1q_u32(&B[64 + 16 + 4],  bc_b.val[ 1]);
+	vst1q_u32(&B[64 + 16 + 8],  bc_b.val[ 2]);
+	vst1q_u32(&B[64 + 16 + 12], bc_b.val[ 3]);
 
         scrypt_shuffle(&B[0  + 0]);
 	scrypt_shuffle(&B[16 + 0]);
@@ -3727,7 +3709,7 @@ static inline void xor_salsa8_prefetch(uint32_t B[16], const uint32_t Bx[16], ui
 		#undef R
 	}
 	B[ 0] += x00;
-	uint32_t one = 32 * (B[0] & (N - 1));
+	uint32_t one = 32 * (B[ 0] & (N - 1));
 	__builtin_prefetch(&V[one]);
 	__builtin_prefetch(&V[one + 8]);
 	__builtin_prefetch(&V[one + 16]);
@@ -3756,15 +3738,15 @@ static inline void scrypt_core(uint32_t *X, uint32_t *V, int N)
 
 	for (i = 0; i < N; i++) {
 		memcpy(&V[i * 32], X, 128);
-		xor_salsa8(&X[0], &X[16]);
-		xor_salsa8(&X[16], &X[0]);
+		xor_salsa8(&x[ 0], &X[16]);
+		xor_salsa8(&X[16], &x[ 0]);
 	}
 	for (i = 0; i < N; i++) {
 		uint32_t j = 32 * (X[16] & (N - 1));
 		for (uint8_t k = 0; k < 32; k++)
 			X[k] ^= V[j + k];
-		xor_salsa8(&X[0], &X[16]);
-		xor_salsa8_prefetch(&X[16], &X[0], V, N);
+		xor_salsa8(&x[ 0], &X[16]);
+		xor_salsa8_prefetch(&X[16], &x[ 0], V, N);
 	}
 }
 
@@ -3787,7 +3769,7 @@ unsigned char __attribute__ ((malloc)) *scrypt_buffer_alloc(int N, int forceThro
 	uint32_t throughput = forceThroughput == -1 ? scrypt_best_throughput() : forceThroughput;
 	#ifndef __aarch64__
 	if (opt_ryzen_1x) {
-		// force throughput to be 3 (aka AVX) instead of AVX2.
+	// force throughput to be 3 (aka AVX) instead of AVX2.
 		throughput = 3;
 	}
 	#endif
@@ -3855,7 +3837,7 @@ unsigned char __attribute__ ((malloc)) *scrypt_buffer_alloc(int N, int forceThro
 	}
 	else
 	{
-		return (unsigned char*)aligned_alloc(16,size);
+		return (unsigned char*)aligned_alloc(64,size);
 	}
 #elif defined(WIN32)
 
@@ -3871,13 +3853,13 @@ unsigned char __attribute__ ((malloc)) *scrypt_buffer_alloc(int N, int forceThro
 		if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
 			disable_hugepages = true;
 
-		if (!disable_hugepages && !LookupPrivilegeValue(NULL, TEXT("SeLockMemoryPrivilege"), &tp.Privileges[0].Luid))
+		if (!disable_hugepages && !LookupPrivilegeValue(NULL, TEXT("SeLockMemoryPrivilege"), &tp.Privileges[ 0].Luid))
 			disable_hugepages = true;
 
 		if (!disable_hugepages)
 		{
 			tp.PrivilegeCount = 1;
-			tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+			tp.Privileges[ 0].Attributes = SE_PRIVILEGE_ENABLED;
 
 			status = AdjustTokenPrivileges(hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES)NULL, 0);
 		}
@@ -3924,7 +3906,7 @@ unsigned char __attribute__ ((malloc)) *scrypt_buffer_alloc(int N, int forceThro
 static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
 	uint32_t *midstate, unsigned char *scratchpad)
 {
-	uint32_t tstate[8] __attribute__((__aligned__(16))), ostate[8] __attribute__((__aligned__(16)));
+	uint32_t tstate[ 8] __attribute__((__aligned__(16))), ostate[ 8] __attribute__((__aligned__(16)));
 	uint32_t X[32] __attribute__((__aligned__(16)));
 	//uint32_t *V __attribute__((__aligned__(64)));
 
@@ -4145,14 +4127,14 @@ extern int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, ui
 	uint32_t *ptarget = work->target;
 	// create arrays based on exact size requirements
 	uint32_t data[throughput * 20], hash[throughput * 8];
-	uint32_t midstate[8];
+	uint32_t midstate[ 8];
 	uint32_t n = pdata[19] - 1;
-	const uint32_t Htarg = ptarget[7];
+	const uint32_t Htarg = ptarget[ 7];
  
 
 #ifndef __aarch64__
 	if (opt_ryzen_1x) {
-		// force throughput to be 3 (aka AVX) instead of AVX2.
+	// force throughput to be 3 (aka AVX) instead of AVX2.
 		throughput = 3;
 	}
 #endif
@@ -4223,7 +4205,7 @@ extern int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, ui
 /* simple cpu test (util.c) */
 void scrypthash(void *output, const void *input, uint32_t N)
 {
-	uint32_t midstate[8];
+	uint32_t midstate[ 8];
 	char *scratchbuf = scrypt_buffer_alloc(N, -1);
 
 	memset(output, 0, 32);
