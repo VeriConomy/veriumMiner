@@ -523,6 +523,11 @@ typedef struct uint32x4x8_t
   uint32x4_t one,two,three,four,five,six,seven,eight;
 } uint32x4x8_t;
 
+typedef struct uint32x4x16_t
+{
+  uint32x4_t val[16];
+} uint32x4x16_t;
+
 static const uint32x4x2_t sha256_h_neon = {
 	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
@@ -974,63 +979,40 @@ static void PBKDF2_SHA256_128_32_armv8(uint32_t *tstate, uint32_t *ostate,
 	}
 }
 
-/*
-  Replacing uint64_t with uint32x4_t for pointer causes gcc8 to implement neon & arm "mov" instructions.
-  Halved the incremented pointer operations to account for "128-bit".
-*/
-//Neon based preloop load for xor_salsa8() or salsa20_block(). B & Xxx must be uint32_t[16]
-static inline void salsa8load64(uint32_t *Xxx, uint32_t *B)
-{	
-	uint32x4_t *dst = (uint32x4_t *) Xxx;
-	uint32x4_t *src = (uint32x4_t *) B;
-
-	*dst++ = *src++;*dst++ = *src++;*dst++ = *src++;*dst++ = *src++;
-}
-
-//Neon based post loop add & save for salsa20_block(). B & Xxx must be uint32_t[16]
-static inline void salsa8addsave64(uint32_t *B, uint32_t *Xxx)
-{	
-	uint32x4_t *dst = (uint32x4_t *) B;
-	uint32x4_t *src = (uint32x4_t *) Xxx;
-
-	*dst++ += *src++;*dst++ += *src++;*dst++ += *src++;*dst++ += *src++;
-}
-
-//Neon based eqxor for xor_salsa8() or  & salsa20_block(). B & Bx must be uint32_t[16]
-static inline void salsa8eqxorload64(uint32_t *B, const uint32_t *Bx)
-{	
-	uint32x4_t *dst = (uint32x4_t *) B;
-	uint32x4_t *src = (uint32x4_t *) Bx;
-
-	*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;*dst++ ^= *src++;
-}
-
-static inline void xor_salsa_prefetch_addsave(uint32_t *B, uint32_t *X/*, uint32_t *V*/)
-{
-	uint32x2_t *dst = (uint32x2_t *) B;
-	uint32x2_t *src = (uint32x2_t *) X;
-
-	*dst++ += *src++;
-	*dst++ += *src++;
-	*dst++ += *src++;
-	*dst++ += *src++;
-	*dst++ += *src++;
-	*dst++ += *src++;
-	*dst++ += *src++;//*dst++ += *src++;
-	//asm("":::"memory");
-}
-/*
- Wikipedia based xorsalsa (inner loop) with 64-bit store/load/eqadd/eqxor operations.
- gcc8 does an excellent job of instruction ordering for dual issue.
-*/
-static inline void salsa20_block(uint32_t *B, const uint32_t *Bx)
+static inline void salsa20_block_loop1(uint32x4x16_t *B)
 {
 	register int i;
 	uint32_t x[16];
 
-	salsa8eqxorload64(B,Bx);
+	// Working on left half
+	B->val[0] = veorq_u32(B->val[0], B->val[4]);
+	B->val[1] = veorq_u32(B->val[1], B->val[5]);
+	B->val[2] = veorq_u32(B->val[2], B->val[6]);
+	B->val[3] = veorq_u32(B->val[3], B->val[7]);
 
-	salsa8load64(x,B);
+	// Neon to generic register transfer stalls the pipeline
+	// Cortex a8 easily 20 cycles. load and store pairs 
+	// using 64 byte L1 cache buffer might be a work around.
+	x[0]  = B->val[0][0];
+	x[1]  = B->val[0][1];
+	x[2]  = B->val[0][2];
+	x[3]  = B->val[0][3];
+
+	x[4]  = B->val[1][0];
+	x[5]  = B->val[1][1];
+	x[6]  = B->val[1][2];
+	x[7]  = B->val[1][3];
+
+	x[8]  = B->val[2][0];
+	x[9]  = B->val[2][1];
+	x[10] = B->val[2][2];
+	x[11] = B->val[2][3];
+
+	x[12] = B->val[3][0];
+	x[13] = B->val[3][1];
+	x[14] = B->val[3][2];
+	x[15] = B->val[3][3];
+
 #define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
 #define QR(a, b, c, d)(		\
 	b ^= ROTL(a + d, 7),	\
@@ -1038,7 +1020,7 @@ static inline void salsa20_block(uint32_t *B, const uint32_t *Bx)
 	d ^= ROTL(c + b,13),	\
 	a ^= ROTL(d + c,18))
 
-	for (i = 0; i < 4; i ++) {
+//	for (i = 0; i < 4; i ++) {
 		// Odd round
 		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
 		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
@@ -1049,45 +1031,8 @@ static inline void salsa20_block(uint32_t *B, const uint32_t *Bx)
 		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
 		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
 		QR(x[15], x[12], x[13], x[14]);	// row 4
-	}
-#undef ROTL
-#undef QR
-	salsa8addsave64(B,x);
-}
-/* Slower than xor_salsa_prefetch implementation.
-static inline void salsa20_block_prefetch(uint32_t *B, const uint32_t *Bx, uint32x4x8_t *V)
-{
-	register int i;
-	uint32_t x[16];
-
-	salsa8eqxorload64(B,Bx);
-
-	salsa8load64(x,B);
-#define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
-#define QR(a, b, c, d)(		\
-	b ^= ROTL(a + d, 7),	\
-	c ^= ROTL(b + a, 9),	\
-	d ^= ROTL(c + b,13),	\
-	a ^= ROTL(d + c,18))
-
-		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-		QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-		// Even round
-		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
-		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-		QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-		// Even round
-		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-		QR(x[15], x[12], x[13], x[14]);	// row 4
+//	}
+		// Odd round
 		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
 		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
 		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
@@ -1105,224 +1050,85 @@ static inline void salsa20_block_prefetch(uint32_t *B, const uint32_t *Bx, uint3
 		// Even round
 		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
 		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-		uint32x4x4_t *one = (uint32x4x4_t *) &V[(B[0] + x[ 0]) & 1048575];
-		__builtin_prefetch(one++);
-		__builtin_prefetch(one);
-		asm("":::"memory");
+		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+		// Odd round
+		QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
+		QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
+		QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
+		QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
+		// Even round
+		QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
+		QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
 		QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
 		QR(x[15], x[12], x[13], x[14]);	// row 4
 #undef ROTL
 #undef QR
-	salsa8addsave64(B,x);
-}*/
 
-/* 
- Loop is unrolled for slightly better performance on aarch64.
- 64-bit logical operatations. #obsolete
-*//*
-static void inline xor_salsa8(uint32_t *B, const uint32_t *Bx)
-{
-	uint32_t x15,x14,x13,x12,x11,x10,x09,x08,x07,x06,x05,x04,x03,x02,x01,x00;
-	register int i;
+	B->val[8][0] = x[0];
+	B->val[8][1] = x[1]; 
+	B->val[8][2] = x[2];  
+	B->val[8][3] = x[3];
 
-	salsa8eqxorload64(B,Bx);
+	B->val[9][0] = x[4];  
+	B->val[9][1] = x[5];
+	B->val[9][2] = x[6];  
+	B->val[9][3] = x[7];
 
-	x00 = B[ 0];
-	x01 = B[ 1];
-	x02 = B[ 2];
-	x03 = B[ 3];
-	x04 = B[ 4];
-	x05 = B[ 5];
-	x06 = B[ 6];
-	x07 = B[ 7];
-	x08 = B[ 8];
-	x09 = B[ 9];
-	x10 = B[10];
-	x11 = B[11];
-	x12 = B[12];
-	x13 = B[13];
-	x14 = B[14];
-	x15 = B[15];
+	B->val[10][0] = x[8];  
+	B->val[10][1] = x[9];
+	B->val[10][2] = x[10]; 
+	B->val[10][3] = x[11]; 
 
-#define R(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
-	for (i = 0; i < 3; i++) {
+	B->val[11][0] = x[12]; 
+	B->val[11][1] = x[13]; 
+	B->val[11][2] = x[14]; 
+ 	B->val[11][3] = x[15]; 
 
-		// Operate on columns. 
-		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
-		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
-		
-		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
-		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
-		
-		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
-		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
-		
-		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
-		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
-		
-		// Operate on rows. 
-		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
-		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
-		
-		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
-		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
-		
-		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
-		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
-		
-		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
-		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
-}
-		// Operate on columns. 
-		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
-		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
-		
-		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
-		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
-		
-		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
-		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
-		
-		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
-		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
-		
-		// Operate on rows. 
-		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
-		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
-		
-		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
-		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
-		
-		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
-		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
-		
-		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
-		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
-#undef R
-
-	B[ 0] += x00;
-	B[ 1] += x01;
-	B[ 2] += x02;
-	B[ 3] += x03;
-	B[ 4] += x04;
-	B[ 5] += x05;
-	B[ 6] += x06;
-	B[ 7] += x07;
-	B[ 8] += x08;
-	B[ 9] += x09;
-	B[10] += x10;
-	B[11] += x11;
-	B[12] += x12;
-	B[13] += x13;
-	B[14] += x14;
-	B[15] += x15;
-}*/
-
-// Enforces instruction ordering allowing dual issue;
-/*static inline void xor_salsa8_add_asm(uint32_t resulta, uint32_t resultb, uint32_t resultc, uint32_t resultd, uint32_t input_a, uint32_t input_b, uint32_t input_c, uint32_t input_d, uint32_t input_e, uint32_t input_f, uint32_t input_g, uint32_t input_h, uint32_t tmp1, uint32_t tmp2, uint32_t tmp3, uint32_t tmp4) {
-
- 	 __asm volatile (
-	"ADD %[resulta], %[input_a], %[input_b]"	"\n\t"
-	"ADD %[resultb], %[input_c], %[input_d]"	"\n\t"
-	"ADD %[resultc], %[input_e], %[input_f]"	"\n\t"
-	"ADD %[resultd], %[input_g], %[input_h]"	"\n\t"
-: [resulta] "=r" (tmp1), [resultb] "=r" (tmp2), [resultc] "=r" (tmp3), [resultd] "=r" (tmp4)
-: [input_a] "r" (input_a), [input_b] "r" (input_b), [input_c] "r" (input_c), [input_d] "r" (input_d), [input_e] "r" (input_e), [input_f] "r" (input_f), [input_g] "r" (input_g), [input_h] "r" (input_h)
- 	 );
+	B->val[0] = vaddq_u32(B->val[0], B->val[8]);
+	B->val[1] = vaddq_u32(B->val[1], B->val[9]);
+	B->val[2] = vaddq_u32(B->val[2], B->val[10]);
+	B->val[3] = vaddq_u32(B->val[3], B->val[11]);
 }
 
-static inline void xor_salsa8_asm(uint32_t X1, uint32_t X2, uint32_t input_a, uint32_t input_b, 
-				uint32_t input_c, uint32_t input_d)
+static inline uint32x4x8_t *salsa20_block_loop2_prefetch(uint32x4x16_t *B, uint32x4x8_t *V)
 {
-	register uint32_t tmp1, tmp2;
+	//register uint32_t i;
+	uint32_t x[17];
 
- 	 __asm volatile (
-	"ADD %[tmp1], %[input_a], %[input_b]"	"\n\t"
-	"ADD %[tmp2], %[input_c], %[input_d]"	"\n\t"
-	"ror %[tmp1], %[tmp1], #7"	"\n\t"
-	"ror %[tmp2], %[tmp2], #7"	"\n\t"
-	"eor %[X1], %[X1], %[tmp1]"	"\n\t"
-	"eor %[X2], %[X2], %[tmp2]"	"\n\t"
-: [tmp1] "=r" (tmp1), [tmp2] "=r" (tmp2), [X1] "=r" (X1), [X2] "=r" (X2)
-: [input_a] "r" (input_a), [input_b] "r" (input_b), [input_c] "r" (input_c), [input_d] "r" (input_d)
- 	 );
-}
-static inline void xor_salsa8_asm2(uint32_t X1, uint32_t X2, uint32_t input_a, uint32_t input_b, 
-				uint32_t input_c, uint32_t input_d)
-{
-	register uint32_t tmp1, tmp2;
+	// Working on right half
+	B->val[4] = veorq_u32(B->val[4], B->val[0]);
+	B->val[5] = veorq_u32(B->val[5], B->val[1]);
+	B->val[6] = veorq_u32(B->val[6], B->val[2]);
+	B->val[7] = veorq_u32(B->val[7], B->val[3]);
 
- 	 __asm volatile (
-	"ADD %[tmp1], %[input_a], %[input_b]"	"\n\t"
-	"ADD %[tmp2], %[input_c], %[input_d]"	"\n\t"
-	"ror %[tmp1], %[tmp1], #9"	"\n\t"
-	"ror %[tmp2], %[tmp2], #9"	"\n\t"
-	"eor %[X1], %[X1], %[tmp1]"	"\n\t"
-	"eor %[X2], %[X2], %[tmp2]"	"\n\t"
-: [tmp1] "=r" (tmp1), [tmp2] "=r" (tmp2), [X1] "=r" (X1), [X2] "=r" (X2)
-: [input_a] "r" (input_a), [input_b] "r" (input_b), [input_c] "r" (input_c), [input_d] "r" (input_d)
- 	 );
-}
-static inline void xor_salsa8_asm3(uint32_t X1, uint32_t X2, uint32_t input_a, uint32_t input_b, 
-				uint32_t input_c, uint32_t input_d)
-{
-	register uint32_t tmp1, tmp2;
+	// Neon to generic register transfer stalls the pipeline
+	// Cortex a8 easily 20 cycles. load and store pairs 
+	// using 64 byte L1 cache buffer might be a work around.
+	x[0]  = B->val[4][0];
+	x[1]  = B->val[4][1];
+	x[2]  = B->val[4][2];
+	x[3]  = B->val[4][3];
 
- 	 __asm volatile (
-	"ADD %[tmp1], %[input_a], %[input_b]"	"\n\t"
-	"ADD %[tmp2], %[input_c], %[input_d]"	"\n\t"
-	"ror %[tmp1], %[tmp1], #13"	"\n\t"
-	"ror %[tmp2], %[tmp2], #13"	"\n\t"
-	"eor %[X1], %[X1], %[tmp1]"	"\n\t"
-	"eor %[X2], %[X2], %[tmp2]"	"\n\t"
-: [tmp1] "=r" (tmp1), [tmp2] "=r" (tmp2), [X1] "=r" (X1), [X2] "=r" (X2)
-: [input_a] "r" (input_a), [input_b] "r" (input_b), [input_c] "r" (input_c), [input_d] "r" (input_d)
- 	 );
-}
-static inline void xor_salsa8_asm4(uint32_t X1, uint32_t X2, uint32_t input_a, uint32_t input_b, 
-				uint32_t input_c, uint32_t input_d)
-{
-	register uint32_t tmp1, tmp2;
+	x[4]  = B->val[5][0];
+	x[5]  = B->val[5][1];
+	x[6]  = B->val[5][2];
+	x[7]  = B->val[5][3];
 
- 	 __asm volatile (
-	"ADD %[tmp1], %[input_a], %[input_b]"	"\n\t"
-	"ADD %[tmp2], %[input_c], %[input_d]"	"\n\t"
-	"ror %[tmp1], %[tmp1], #18"	"\n\t"
-	"ror %[tmp2], %[tmp2], #18"	"\n\t"
-	"eor %[X1], %[X1], %[tmp1]"	"\n\t"
-	"eor %[X2], %[X2], %[tmp2]"	"\n\t"
-: [tmp1] "=r" (tmp1), [tmp2] "=r" (tmp2), [X1] "=r" (X1), [X2] "=r" (X2)
-: [input_a] "r" (input_a), [input_b] "r" (input_b), [input_c] "r" (input_c), [input_d] "r" (input_d)
- 	 );
-}*/
-/*
-  Split loop and struct offers better performance for some reason. Using both processing macros here improves dual issue.
-*/
-static inline void xor_salsa8_prefetch(uint32_t *B, const uint32_t *Bx, uint32x4x8_t *V)
-{
-	register int i;
-	uint32_t x[16];
+	x[8]  = B->val[6][0];
+	x[9]  = B->val[6][1];
+	x[10] = B->val[6][2];
+	x[11] = B->val[6][3];
 
-	salsa8eqxorload64(B,Bx);
+	x[12] = B->val[7][0];
+	x[13] = B->val[7][1];
+	x[14] = B->val[7][2];
+	x[15] = B->val[7][3];
 
-	salsa8load64(x,B);
-
-	/*x[0] = B[ 0];
-	x[1] = B[ 1];
-	x[2] = B[ 2];
-	x[3] = B[ 3];
-	x[4] = B[ 4];
-	x[5] = B[ 5];
-	x[6] = B[ 6];
-	x[7] = B[ 7];
-	x[8] = B[ 8];
-	x[9] = B[ 9];
-	x[10] = B[10];
-	x[11] = B[11];
-	x[12] = B[12];
-	x[13] = B[13];
-	x[14] = B[14];
-	x[15] = B[15];*/
+	// Neon to general registers have high execution throughput
+	// So retrieving from B->val[4][0] risks data for prefetch index
+	// Taking too long. Copy to a generic register instead.
+	x[16] = x[0];
 
 #define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
 #define QR(a, b, c, d)(		\
@@ -1330,7 +1136,7 @@ static inline void xor_salsa8_prefetch(uint32_t *B, const uint32_t *Bx, uint32x4
 	c ^= ROTL(b + a, 9),	\
 	d ^= ROTL(c + b,13),	\
 	a ^= ROTL(d + c,18))
-for (i = 0; i < 2; i++) {
+//for (i = 0; i < 2; i++) {
 		// Odd round
 		QR(x[0], x[4], x[8], x[12]);	// column 1
 		QR(x[5], x[9], x[13], x[1]);	// column 2
@@ -1341,158 +1147,305 @@ for (i = 0; i < 2; i++) {
 		QR(x[5], x[6], x[7], x[4]);	// row 2
 		QR(x[10], x[11], x[8], x[9]);	// row 3
 		QR(x[15], x[12], x[13], x[14]);	// row 4
-}
-for (; i < 4; i++) { 
+//}
+
+//for (; i < 4; i++) { 
 		// Odd round
 		QR(x[0], x[4], x[8], x[12]);	// column 1
 		QR(x[5], x[9], x[13], x[1]);	// column 2
 		QR(x[10], x[14], x[2], x[6]);	// column 3
 		QR(x[15], x[3], x[7], x[11]);	// column 4
 		
-		/* Operate on rows. */
-		x[1] ^= ROTL(x[0]+x[3], 7);	x[6] ^= ROTL(x[5]+x[4], 7);
-		x[11] ^= ROTL(x[10]+x[9], 7);	x[12] ^= ROTL(x[15]+x[14], 7);
+		// Even round
+		QR(x[0], x[1], x[2], x[3]);	// row 1
+		QR(x[5], x[6], x[7], x[4]);	// row 2
+		QR(x[10], x[11], x[8], x[9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+//}
+//for (i = 0; i < 2; i++) {
+		// Odd round
+		QR(x[0], x[4], x[8], x[12]);	// column 1
+		QR(x[5], x[9], x[13], x[1]);	// column 2
+		QR(x[10], x[14], x[2], x[6]);	// column 3
+		QR(x[15], x[3], x[7], x[11]);	// column 4
+		// Even round
+		QR(x[0], x[1], x[2], x[3]);	// row 1
+		QR(x[5], x[6], x[7], x[4]);	// row 2
+		QR(x[10], x[11], x[8], x[9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+//}
+
+//for (; i < 4; i++) { 
+		// Odd round
+		QR(x[0], x[4], x[8], x[12]);	// column 1
+		QR(x[5], x[9], x[13], x[1]);	// column 2
+		QR(x[10], x[14], x[2], x[6]);	// column 3
+		QR(x[15], x[3], x[7], x[11]);	// column 4
 		
-		x[2] ^= ROTL(x[1]+x[0], 9);	x[7] ^= ROTL(x[6]+x[5], 9);
-		x[8] ^= ROTL(x[11]+x[10], 9);	x[13] ^= ROTL(x[12]+x[15], 9);
-		
-		x[3] ^= ROTL(x[2]+x[1],13);	x[4] ^= ROTL(x[7]+x[6],13);
-		x[9] ^= ROTL(x[8]+x[11],13);	x[14] ^= ROTL(x[13]+x[12],13);
-		
-		x[0] ^= ROTL(x[3]+x[2],18);	x[5] ^= ROTL(x[4]+x[7],18);
-		x[10] ^= ROTL(x[9]+x[8],18);	x[15] ^= ROTL(x[14]+x[13],18);
- }
+		// Even round
+		QR(x[0], x[1], x[2], x[3]);	// row 1
+		QR(x[5], x[6], x[7], x[4]);	// row 2
+		QR(x[10], x[11], x[8], x[9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+//}
 #undef ROTL
 #undef QR
-	B[ 0] += x[0];
-	B[ 1] += x[1];
-	x[0] = B[0] & 1048575;
- 	/*__asm ("AND %[result]], %[input_i]], #0xFFFFF"
-   	 : [result] "=r" (x[0)
-   	 : [input_i] "r" (B[0])
- 	 ]);*/
-	asm("":::"memory");
-	// cast pointer suitable for incrementing and cache line size of 64 bytes
-	uint32x4x4_t *ptr = (uint32x4x4_t *) &V[x[0]];
-	__builtin_prefetch(ptr++);
+	x[16] = (x[0] + x[16]) & 1048575;  
+	uint32x4x4_t *ptr = (uint32x4x4_t *) &V[x[16]];
 	__builtin_prefetch(ptr);
+	__builtin_prefetch(ptr + 1); 
 	asm("":::"memory");
-	//xor_salsa_prefetch_addsave(&B[2]], &x[2]);
-	B[ 2] += x[2];
-	B[ 3] += x[3];
-	B[ 4] += x[4];
-	B[ 5] += x[5];
-	B[ 6] += x[6];
-	B[ 7] += x[7];
-	B[ 8] += x[8];
-	B[ 9] += x[9];
-	B[10] += x[10];
-	B[11] += x[11];
-	B[12] += x[12];
-	B[13] += x[13];
-	B[14] += x[14];
-	B[15] += x[15];
+	B->val[8][0] = x[0];
+	B->val[8][1] = x[1]; 
+	B->val[8][2] = x[2];  
+	B->val[8][3] = x[3];
+
+	B->val[9][0] = x[4];  
+	B->val[9][1] = x[5];
+	B->val[9][2] = x[6];  
+	B->val[9][3] = x[7];
+
+	B->val[10][0] = x[8];  
+	B->val[10][1] = x[9];
+	B->val[10][2] = x[10]; 
+	B->val[10][3] = x[11]; 
+
+	B->val[11][0] = x[12]; 
+	B->val[11][1] = x[13]; 
+	B->val[11][2] = x[14]; 
+ 	B->val[11][3] = x[15]; 
+
+	B->val[4] = vaddq_u32(B->val[4], B->val[8]);
+	B->val[5] = vaddq_u32(B->val[5], B->val[9]);
+	B->val[6] = vaddq_u32(B->val[6], B->val[10]);
+	B->val[7] = vaddq_u32(B->val[7], B->val[11]);
+
+	// Give eqxorload precalculated load pointer
+	return (uint32x4x8_t *) ptr;
 }
 
-/*
-  Replacing uint64_t with uint32x4_t for pointer causes gcc8 to implement neon logical & arm "mov" instructions.
-  Halve the incremented pointer operations to account for "128-bit".
-*/
-//Neon based eqxor load for scrypt_core(). X must be uint32_t[32] *experimented with vector array loads
-static inline void eqxorload64(uint32_t *X, uint32x4x8_t *V)
+static inline void salsa20_block_loop2(uint32x4x16_t *B)
 {
-	uint32_t j = X[16] & 1048575;
-	uint32x4_t *dst = (uint32x4_t *) X;
-	uint32x4_t one, two, three, four;
-	uint32_t *src = (uint32_t *) &V[j];
+	register uint32_t i;
+	uint32_t x[16];
 
+	// Working on right half
+	B->val[4] = veorq_u32(B->val[4], B->val[0]);
+	B->val[5] = veorq_u32(B->val[5], B->val[1]);
+	B->val[6] = veorq_u32(B->val[6], B->val[2]);
+	B->val[7] = veorq_u32(B->val[7], B->val[3]);
+
+	// Neon to generic register transfer stalls the pipeline
+	// Cortex a8 easily 20 cycles. load and store pairs 
+	// using 64 byte L1 cache buffer might be a work around.
+	x[0]  = B->val[4][0];
+	x[1]  = B->val[4][1];
+	x[2]  = B->val[4][2];
+	x[3]  = B->val[4][3];
+
+	x[4]  = B->val[5][0];
+	x[5]  = B->val[5][1];
+	x[6]  = B->val[5][2];
+	x[7]  = B->val[5][3];
+
+	x[8]  = B->val[6][0];
+	x[9]  = B->val[6][1];
+	x[10] = B->val[6][2];
+	x[11] = B->val[6][3];
+
+	x[12] = B->val[7][0];
+	x[13] = B->val[7][1];
+	x[14] = B->val[7][2];
+	x[15] = B->val[7][3];
+
+#define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
+#define QR(a, b, c, d)(		\
+	b ^= ROTL(a + d, 7),	\
+	c ^= ROTL(b + a, 9),	\
+	d ^= ROTL(c + b,13),	\
+	a ^= ROTL(d + c,18))
+//for (i = 0; i < 2; i++) {
+		// Odd round
+		QR(x[0], x[4], x[8], x[12]);	// column 1
+		QR(x[5], x[9], x[13], x[1]);	// column 2
+		QR(x[10], x[14], x[2], x[6]);	// column 3
+		QR(x[15], x[3], x[7], x[11]);	// column 4
+		// Even round
+		QR(x[0], x[1], x[2], x[3]);	// row 1
+		QR(x[5], x[6], x[7], x[4]);	// row 2
+		QR(x[10], x[11], x[8], x[9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+//}
+
+//for (; i < 4; i++) { 
+		// Odd round
+		QR(x[0], x[4], x[8], x[12]);	// column 1
+		QR(x[5], x[9], x[13], x[1]);	// column 2
+		QR(x[10], x[14], x[2], x[6]);	// column 3
+		QR(x[15], x[3], x[7], x[11]);	// column 4
+		
+		// Even round
+		QR(x[0], x[1], x[2], x[3]);	// row 1
+		QR(x[5], x[6], x[7], x[4]);	// row 2
+		QR(x[10], x[11], x[8], x[9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+//}
+		// Odd round
+		QR(x[0], x[4], x[8], x[12]);	// column 1
+		QR(x[5], x[9], x[13], x[1]);	// column 2
+		QR(x[10], x[14], x[2], x[6]);	// column 3
+		QR(x[15], x[3], x[7], x[11]);	// column 4
+		// Even round
+		QR(x[0], x[1], x[2], x[3]);	// row 1
+		QR(x[5], x[6], x[7], x[4]);	// row 2
+		QR(x[10], x[11], x[8], x[9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+//}
+
+//for (; i < 4; i++) { 
+		// Odd round
+		QR(x[0], x[4], x[8], x[12]);	// column 1
+		QR(x[5], x[9], x[13], x[1]);	// column 2
+		QR(x[10], x[14], x[2], x[6]);	// column 3
+		QR(x[15], x[3], x[7], x[11]);	// column 4
+		
+		// Even round
+		QR(x[0], x[1], x[2], x[3]);	// row 1
+		QR(x[5], x[6], x[7], x[4]);	// row 2
+		QR(x[10], x[11], x[8], x[9]);	// row 3
+		QR(x[15], x[12], x[13], x[14]);	// row 4
+#undef ROTL
+#undef QR
+	B->val[8][0] = x[0];
+	B->val[8][1] = x[1]; 
+	B->val[8][2] = x[2];  
+	B->val[8][3] = x[3];
+
+	B->val[9][0] = x[4];  
+	B->val[9][1] = x[5];
+	B->val[9][2] = x[6];  
+	B->val[9][3] = x[7];
+
+	B->val[10][0] = x[8];  
+	B->val[10][1] = x[9];
+	B->val[10][2] = x[10]; 
+	B->val[10][3] = x[11]; 
+
+	B->val[11][0] = x[12]; 
+	B->val[11][1] = x[13]; 
+	B->val[11][2] = x[14]; 
+ 	B->val[11][3] = x[15];
+
+	B->val[4] = vaddq_u32(B->val[4], B->val[8]);
+	B->val[5] = vaddq_u32(B->val[5], B->val[9]);
+	B->val[6] = vaddq_u32(B->val[6], B->val[10]);
+	B->val[7] = vaddq_u32(B->val[7], B->val[11]);
+}
+
+//Neon & Non-temporal Load based eqxor load for scrypt_core(). X must be uint32_t[32]
+static inline void eqxorload64(uint32x4x16_t *X, uint32x4x8_t *V)
+{
 	// Using non-temporal load pair. Might help expire L1keep prefetch.
-	asm volatile(
+	asm(
 		"ldnp %q[DST1], %q[DST2], [%[SRC]]" "\n"
-		: [DST1] "=w" (one), [DST2] "=w" (two)
-		: [SRC] "X" (src)
+		: [DST1] "=w" (X->val[8]), [DST2] "=w" (X->val[9])
+		: [SRC] "r" (V)
+		: "memory"
 	);
-	asm volatile(
+	asm(
 		"ldnp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
-		: [DST1] "=w" (three), [DST2] "=w" (four)
-		: [SRC] "X" (src)
+		: [DST1] "=w" (X->val[10]), [DST2] "=w" (X->val[11])
+		: [SRC] "r" (V)
+		: "memory"
 	);
-	*dst++ ^= one;*dst++ ^= two; 
-	asm volatile(
+	asm(
 		"ldnp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
-		: [DST1] "=w" (one), [DST2] "=w" (two)  
-		: [SRC] "X" (src)
+		: [DST1] "=w" (X->val[12]), [DST2] "=w" (X->val[13])  
+		: [SRC] "r" (V)
+		: "memory"
 	);
-	*dst++ ^= three;*dst++ ^= four;
-	asm volatile(
+	asm(
 		"ldnp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
-		: [DST1] "=w" (three), [DST2] "=w" (four)
-		: [SRC] "X" (src)
+		: [DST1] "=w" (X->val[14]), [DST2] "=w" (X->val[15])
+		: [SRC] "r" (V)
+		: "memory"
 	);
-	*dst++ ^= one;*dst++ ^= two;*dst++ ^= three;*dst ^= four;
+
+	X->val[0] = veorq_u32(X->val[0], X->val[8]);
+	X->val[1] = veorq_u32(X->val[1], X->val[9]);
+	X->val[2] = veorq_u32(X->val[2], X->val[10]);
+	X->val[3] = veorq_u32(X->val[3], X->val[11]);
+
+	X->val[4] = veorq_u32(X->val[4], X->val[12]);
+	X->val[5] = veorq_u32(X->val[5], X->val[13]);
+	X->val[6] = veorq_u32(X->val[6], X->val[14]);
+	X->val[7] = veorq_u32(X->val[7], X->val[15]);
+
 }
 
-// separating the second loop as an inline function boosts & stabilizes hashrate for some reason.
-static inline void scrypt_core_loop2(uint32_t *X, uint32x4x8_t *V)
+//Neon store pair based memcpy alternative for scrypt_core(). a & b must be uint32_t[32]
+static inline void memcpy64(uint32x4x8_t *V, uint32x4x16_t *X)
 {
-	int i;
-	for (i = 0; i < 1048576; i++) {
-		// Address is resolved in eqxorload64
-		eqxorload64(X, V);
-		salsa20_block(&X[0], &X[16]);
-		xor_salsa8_prefetch(&X[16], &X[0], V);
-	}
-}
-
-//Neon based memcpy alternative for scrypt_core(). a & b must be uint32_t[32]
-static inline void memcpy64(uint32x4x8_t *V, uint32_t *X)
-{
-    	uint32x4_t *src = (uint32x4_t *) X;
-
 	// Using store pair
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC]]" "\n"
 		:  
-		: [DST1] "w" (*src++), [DST2] "w" (*src++), [SRC] "X" (V)
+		: [DST1] "w" (X->val[0]), [DST2] "w" (X->val[1]), [SRC] "r" (V)
+		: "memory"
 	);
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
 		:  
-		: [DST1] "w" (*src++), [DST2] "w" (*src++), [SRC] "X" (V)
+		: [DST1] "w" (X->val[2]), [DST2] "w" (X->val[3]), [SRC] "r" (V)
+		: "memory"
 	);
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
 		:  
-		: [DST1] "w" (*src++), [DST2] "w" (*src++), [SRC] "X" (V)
+		: [DST1] "w" (X->val[4]), [DST2] "w" (X->val[5]), [SRC] "r" (V)
+		: "memory"
 	);
 	asm(
 		"stp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
 		:
-		: [DST1] "w" (*src++), [DST2] "w" (*src), [SRC] "X" (V)
+		: [DST1] "w" (X->val[6]), [DST2] "w" (X->val[7]), [SRC] "r" (V)
+		: "memory"
 	);
 }
 
-// gcc8 does not order instructions for dual issue in xor_salsa8_prefetch.
-static inline void scrypt_core(uint32_t *X, uint32x4x8_t *V/*, int N*/)
+static inline void scrypt_core(uint32_t *Xsrc, uint32x4x8_t *V)
 {
-	//int i; * integrate scratchpad 1024-bit pointer into loop as iterator & eliminate index calculator
-	{
-	    	uint32x4x8_t *Vstr = V;
+	// Create neon register work buffer.
+	// Stores, Loads, Adds and some Xor operations performed in asimd/neon
+	uint32x4x16_t X;
 
-		for (; Vstr < &V[1048576]; Vstr++) {
-			memcpy64(Vstr, X);
-			salsa20_block(&X[0], &X[16]);
-			salsa20_block(&X[16], &X[0]);
-		}
+	// memcpy for accurate work data copy.
+	memcpy(&X, Xsrc, 128);
+
+	uint32x4x8_t *Vptr = V;
+
+	// Save loop
+	for (; Vptr < &V[1048576]; Vptr++) {
+		memcpy64(Vptr, &X);
+		salsa20_block_loop1(&X);
+		salsa20_block_loop2(&X);
 	}
 
-	/*for (Vstr = V; Vstr < &V[1048576]; Vstr++) {
-		// Address is resolved in eqxorload64
-		eqxorload64(X, V);
-		salsa20_block(&X[0], &X[16]);
-		xor_salsa8_prefetch(&X[16], &X[0], V);
-	}*/
-	scrypt_core_loop2(X, V);
+	// Calculate scratchpad scratchpad load memory address
+	uint32_t i = X.val[4][0];
+	i = i & (uint32_t) 1048575;
+
+	Vptr = &V[i];
+
+	// Read loop
+	for (uint32_t i = 0; i < 1048576; i++) {
+		eqxorload64(&X, Vptr);
+		salsa20_block_loop1(&X);
+		Vptr = salsa20_block_loop2_prefetch(&X, V);
+	}
+
+	// Store results
+	memcpy(Xsrc, &X, 128);
 }
 
 /* Removed unnecessary steps */
@@ -3829,7 +3782,7 @@ bool disable_hugepages = false;
 int hugepages_successes = 0;
 int hugepages_fails = 0;
 int hugepages_size_failed = 0;
-unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
+unsigned char __attribute__ ((malloc)) *scrypt_buffer_alloc(int N, int forceThroughput)
 {
 	uint32_t throughput = forceThroughput == -1 ? scrypt_best_throughput() : forceThroughput;
 	#ifndef __aarch64__
@@ -3865,7 +3818,8 @@ unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
 
 	if (!disable_hugepages)
 	{
-		unsigned char* m_memory = (unsigned char*)(mmap(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_POPULATE | MAP_NONBLOCK | MAP_NORESERVE, 0, 0));
+		unsigned char* m_memory = (unsigned char*)aligned_alloc(64,size);
+		m_memory = (unsigned char*)(mmap(m_memory, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_POPULATE | MAP_NONBLOCK | MAP_NORESERVE, 0, 0));
 		if (m_memory == MAP_FAILED)
 		{
 			pthread_mutex_lock(&alloc_mutex);
@@ -3901,8 +3855,7 @@ unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
 	}
 	else
 	{
-		// pointer aligned to cache line size 64 bytes
-		return (unsigned char*)aligned_alloc(64,size);
+		return (unsigned char*)aligned_alloc(16,size);
 	}
 #elif defined(WIN32)
 
@@ -3969,7 +3922,7 @@ unsigned char *scrypt_buffer_alloc(int N, int forceThroughput)
    (((union {__typeof__(x) a; destType b;})x).b)
 
 static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
-	uint32_t *midstate, unsigned char *scratchpad, int N)
+	uint32_t *midstate, unsigned char *scratchpad)
 {
 	uint32_t tstate[8] __attribute__((__aligned__(16))), ostate[8] __attribute__((__aligned__(16)));
 	uint32_t X[32] __attribute__((__aligned__(16)));
@@ -3977,7 +3930,7 @@ static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
 
 	// Cast custom typedef 1024 bit scratchpad pointer aligned to cache line size of 64 bytes on armv8
 	#ifdef __aarch64__
-	uint32x4x8_t *V __attribute__((__aligned__(64))) = (uint32x4x8_t *)(((uintptr_t)(UNION_CAST(__builtin_assume_aligned(scratchpad, 64), uint32x4x8_t *)) + 63) & ~ (uintptr_t)(63));
+	uint32x4x8_t *V = (uint32x4x8_t *)(((uintptr_t)(UNION_CAST(scratchpad, uint32x4x8_t *)) + 63) & ~ (uintptr_t)(63));
 	#else
 	uint32_t *V = (uint32_t *)(((uintptr_t)(scratchpad) + 63) & ~ (uintptr_t)(63));
 	#endif
@@ -3987,7 +3940,7 @@ static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
 
 	PBKDF2_SHA256_80_128_armv8(tstate, ostate, input, X);
 
-	scrypt_core(X, V/*, N*/); // Hardcode N into function instead
+	scrypt_core(X, V); // Hardcode N into function instead
 
 	PBKDF2_SHA256_128_32_armv8(tstate, ostate, X, output, 1);
 }
@@ -4039,7 +3992,7 @@ static void scrypt_1024_1_1_256_2way(const uint32_t *input,
 	uint32_t X[2 * 32] __attribute__((__aligned__(16)));
 	uint32_t *V __attribute__((__aligned__(16)));
 	
-	V = (uint32_t *)(((uintptr_t)(UNION_CAST(__builtin_assume_aligned(scratchpad, 64), uint32_t *)) + 63) & ~ (uintptr_t)(63));
+	V = (uint32_t *)(((uintptr_t)(UNION_CAST(scratchpad, uint32_t *)) + 63) & ~ (uintptr_t)(63));
 
 	newmemcpy(tstate +  0, midstate, 32);
 	newmemcpy(tstate +  8, midstate, 32);
@@ -4250,7 +4203,7 @@ extern int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, ui
 			scrypt_1024_1_1_256_3way(data, hash, midstate, scratchbuf, N);
 		else
 #endif
-			scrypt_1024_1_1_256(data, hash, midstate, scratchbuf, N);
+			scrypt_1024_1_1_256(data, hash, midstate, scratchbuf);
 
 		for (i = 0; i < throughput; i++) {
 			if (unlikely(hash[i * 8 + 7] <= Htarg && fulltest(hash + i * 8, ptarget))) {
@@ -4280,7 +4233,7 @@ void scrypthash(void *output, const void *input, uint32_t N)
 	//sha256_init_armv8(midstate);
 	sha256_transform_armv8_init(midstate, input);
 
-	scrypt_1024_1_1_256((uint32_t*)input, (uint32_t*)output, midstate, scratchbuf, N);
+	scrypt_1024_1_1_256((uint32_t*)input, (uint32_t*)output, midstate, scratchbuf);
 
 	free(scratchbuf);
 }
