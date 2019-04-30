@@ -19,8 +19,6 @@ cpuminer_SOURCES = \
   cpu-miner.c util.c \
   api.c sysinfos.c \
   uint256.cpp \
-  crypto/oaes_lib.c \
-  crypto/aesb.c \
   algo/scrypt.c \
   algo/sha2.c
 
