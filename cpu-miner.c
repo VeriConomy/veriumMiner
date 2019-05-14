@@ -343,13 +343,15 @@ static void workio_cmd_free(struct workio_cmd *wc);
 static inline void drop_policy(void)
 {
 	struct sched_param param;
-	param.sched_priority = 0;
-#ifdef SCHED_IDLE
+	//param.sched_priority = 0;
+	param.sched_priority = sched_get_priority_max(SCHED_FIFO); // Real time thread scheduling max priority
+/*#ifdef SCHED_IDLE
 	if (unlikely(sched_setscheduler(0, SCHED_IDLE, &param) == -1))
 #endif
 #ifdef SCHED_BATCH
 		sched_setscheduler(0, SCHED_BATCH, &param);
-#endif
+#endif*/
+	sched_setscheduler(0, SCHED_FIFO, &param); // Real time thread scheduling
 }
 
 #ifdef __BIONIC__
