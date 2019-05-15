@@ -125,7 +125,7 @@ int opt_default_priority = 5;
 int opt_affinity_stride = 1;
 int opt_affinity_default_index = 0;
 int opt_affinity_oneway_index = 0;
-int opt_oneway_priority = 5;
+int opt_oneway_priority = 0;
 bool opt_ryzen_1x = false;
 int* thread_affinty_array = NULL;
 int num_cpus;
@@ -249,7 +249,7 @@ Options:\n\
       --cpu-affinity-oneway-index N \n\
             which cpu to start affinity for 'default' way threads (0-based). (default: [After default threads]) See README.md for more details.\n\
       --cpu-priority-oneway 0-5\n\
-            what priority oneway threads have (0 lowest, 5 highest) (default: 5)\n\
+            what priority oneway threads have (0 lowest, 5 highest) (default: 0)\n\
 \n\
   -b, --api-bind        IP/Port for the miner API (default: 127.0.0.1:4048)\n\
       --api-remote      Allow remote control\n\
