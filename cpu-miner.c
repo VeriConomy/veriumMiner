@@ -121,7 +121,7 @@ int opt_n_total_threads = 0;
 int use_affinity_mask = 0; // default to 'maybe'
 int64_t opt_affinity_mask_default = 0L;
 int64_t opt_affinity_mask_oneway = 0L;
-int opt_default_priority = 0;
+int opt_default_priority = 5;
 int opt_affinity_stride = 1;
 int opt_affinity_default_index = 0;
 int opt_affinity_oneway_index = 0;
@@ -239,7 +239,7 @@ Options:\n\
       --benchmark       run in offline benchmark mode\n\
       --cputest         debug hashes from cpu algorithms\n\
       --cpu-affinity    set process affinity to cpu core(s), mask 0x3 for cores 0 and 1\n\
-      --cpu-priority    set process priority (default: 0 idle, 2 normal to 5 highest)\n\
+      --cpu-priority    set process priority (0 idle, 2 normal to (default) 5 highest)\n\
 \n\
       --cpu-affinity-stride N  \n\
             how many processors to skip when assigining affinity based on indicies\n\
