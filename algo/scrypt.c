@@ -981,38 +981,80 @@ static void PBKDF2_SHA256_128_32_armv8(uint32_t *tstate, uint32_t *ostate,
 	}
 }
 
-static inline void load(uint32_t *x, uint32x4x16_t *B) {
-	x[ 0] = B->val[ 0][ 0];
-	x[ 1] = B->val[ 0][ 1];
-	x[ 2] = B->val[ 0][ 2];
-	x[ 3] = B->val[ 0][ 3];
 
-	x[ 4] = B->val[ 1][ 0];
-	x[ 5] = B->val[ 1][ 1];
-	x[ 6] = B->val[ 1][ 2];
-	x[ 7] = B->val[ 1][ 3];
-
-	x[ 8] = B->val[ 2][ 0];
-	x[ 9] = B->val[ 2][ 1];
-	x[10] = B->val[ 2][ 2];
-	x[11] = B->val[ 2][ 3];
-
-	x[12] = B->val[ 3][ 0];
-	x[13] = B->val[ 3][ 1];
-	x[14] = B->val[ 3][ 2];
-	x[15] = B->val[ 3][ 3];
+//Neon store pair based memcpy alternative for scrypt_core(). X must be uint32x4x16_t*
+static inline void memcpy64(uint32x4x8_t *V, uint32x4x16_t *X)
+{
+	// Using store pair
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC]]" "\n"
+		:  
+		: [DST1] "w" (X->val[ 0]), [DST2] "w" (X->val[ 1]), [SRC] "r" (V)
+		: "memory"
+	);
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
+		:  
+		: [DST1] "w" (X->val[ 2]), [DST2] "w" (X->val[ 3]), [SRC] "r" (V)
+		: "memory"
+	);
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
+		:  
+		: [DST1] "w" (X->val[ 4]), [DST2] "w" (X->val[ 5]), [SRC] "r" (V)
+		: "memory"
+	);
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
+		:
+		: [DST1] "w" (X->val[ 6]), [DST2] "w" (X->val[ 7]), [SRC] "r" (V)
+		: "memory"
+	);
 }
-
-static inline void salsa20_block_loop1(uint32x4x16_t *B)
+ 
+static inline void scryptNsave_cycle(uint32x4x16_t *B, uint32x4x8_t *V)
 {
 	uint32_t __attribute__((__aligned__(8))) x[16];
 	register uint32_t tmp1, tmp2, tmp3, tmp4;
+
+	uint32x4x8_t *Vptr = V;
+
+	// Save loop
+	for (; Vptr < &V[1048576]; Vptr++) {
+//	vst4q_u32((uint32_t *) Vptr, *(uint32x4x4_t *) &B->val[ 0]);
+	asm(
+		"stnp %q[DST1], %q[DST2], [%[SRC]]" "\n"
+		:  
+		: [DST1] "w" (B->val[ 0]), [DST2] "w" (B->val[ 1]), [SRC] "r" (Vptr)
+		: "memory"
+	);
+	asm(
+		"stnp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
+		:  
+		: [DST1] "w" (B->val[ 2]), [DST2] "w" (B->val[ 3]), [SRC] "r" (Vptr)
+		: "memory"
+	); 
+	/*asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
+		:  
+		: [DST1] "w" (B->val[ 4]), [DST2] "w" (B->val[ 5]), [SRC] "r" (Vptr)
+		: "memory"
+	);
+	asm(
+		"stp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
+		:
+		: [DST1] "w" (B->val[ 6]), [DST2] "w" (B->val[ 7]), [SRC] "r" (Vptr)
+		: "memory"
+	);*/
+	vst4q_u32(((uint32_t *) Vptr) + 16, *(uint32x4x4_t *) &B->val[ 4]);
 
 	// Working on left half
 	B->val[ 0] = veorq_u32(B->val[ 0], B->val[ 4]);
 	B->val[ 1] = veorq_u32(B->val[ 1], B->val[ 5]);
 	B->val[ 2] = veorq_u32(B->val[ 2], B->val[ 6]);
 	B->val[ 3] = veorq_u32(B->val[ 3], B->val[ 7]);
+
+	//vst4q_u32(((uint32_t *) Vptr) + 16, *(uint32x4x4_t *) &B->val[ 4]);
 
 	// Neon to generic register transfer stalls the pipeline
 	// Cortex a8 easily 20 cycles. load and store pairs 
@@ -1038,13 +1080,14 @@ static inline void salsa20_block_loop1(uint32x4x16_t *B)
 	x[14] = B->val[ 3][ 2];
 	x[15] = B->val[ 3][ 3];
 
-#define ROR(a,b) (((a) >> (b)) | ((a) << (32 - (b))))
+#define ROR(a,b) a >> b | a << (32 - b)
 #define QuadRound(a, b, c, d, a1, a2, b1, b2, c1, c2, d1, d2, rot)		\
+	asm volatile("": : :"memory");	\
 	(tmp1 = a1 + a2,	\
 	tmp2 = b1 + b2,	\
 	tmp3 = c1 + c2,	\
-	tmp4 = d1 + d2,	\
-	a ^= ROR(tmp1, rot),	\
+	tmp4 = d1 + d2),	\
+	(a ^= ROR(tmp1, rot),	\
 	b ^= ROR(tmp2, rot),	\
 	c ^= ROR(tmp3, rot),	\
 	d ^= ROR(tmp4, rot))
@@ -1180,136 +1223,6 @@ static inline void salsa20_block_loop1(uint32x4x16_t *B)
 	B->val[ 1] = vaddq_u32(B->val[ 1], B->val[ 9]);
 	B->val[ 2] = vaddq_u32(B->val[ 2], B->val[10]);
 	B->val[ 3] = vaddq_u32(B->val[ 3], B->val[11]);
-}
-
-static inline uint32x4x8_t *salsa20_block_loop2_prefetch(uint32x4x16_t *B, uint32x4x8_t *V)
-{
-	uint32_t __attribute__((__aligned__(8))) x[17];
-
-	// Working on right half
-	B->val[ 4] = veorq_u32(B->val[ 4], B->val[ 0]);
-	B->val[ 5] = veorq_u32(B->val[ 5], B->val[ 1]);
-	B->val[ 6] = veorq_u32(B->val[ 6], B->val[ 2]);
-	B->val[ 7] = veorq_u32(B->val[ 7], B->val[ 3]);
-
-	// Neon to generic register transfer stalls the pipeline
-	// Cortex a8 easily 20 cycles. load and store pairs 
-	// using 64 byte L1 cache buffer might be a work around.
-	x[ 0] = B->val[ 4][ 0];
-	x[ 1] = B->val[ 4][ 1];
-	x[ 2] = B->val[ 4][ 2];
-	x[ 3] = B->val[ 4][ 3];
-
-	x[ 4] = B->val[ 5][ 0];
-	x[ 5] = B->val[ 5][ 1];
-	x[ 6] = B->val[ 5][ 2];
-	x[ 7] = B->val[ 5][ 3];
-
-	x[ 8] = B->val[ 6][ 0];
-	x[ 9] = B->val[ 6][ 1];
-	x[10] = B->val[ 6][ 2];
-	x[11] = B->val[ 6][ 3];
-
-	x[12] = B->val[ 7][ 0];
-	x[13] = B->val[ 7][ 1];
-	x[14] = B->val[ 7][ 2];
-	x[15] = B->val[ 7][ 3];
-
-	// Neon to general registers have high execution throughput
-	// So retrieving from B->val[ 4][ 0] risks data for prefetch index
-	// Taking too long. Copy to a generic register instead.
-	x[16] = x[ 0];
-#define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
-#define QR(a, b, c, d)(		\
-	b ^= ROTL(a + d, 7),	\
-	c ^= ROTL(b + a, 9),	\
-	d ^= ROTL(c + b,13),	\
-	a ^= ROTL(d + c,18))
-
-	// Loop fully unrolled
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
-
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
-
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
-
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4	
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
-#undef ROTL
-#undef QR
-	x[16] = (x[ 0] + x[16]) & (uint32_t) 1048575;  
-	uint32x4x4_t *ptr = (uint32x4x4_t *) &V[x[16]];
-	__builtin_prefetch(ptr);
-	__builtin_prefetch(ptr + 1); 
-	asm("":::"memory");
-	B->val[ 8][ 0] = x[ 0];
-	B->val[ 8][ 1] = x[ 1]; 
-	B->val[ 8][ 2] = x[ 2];  
-	B->val[ 8][ 3] = x[ 3];
-
-	B->val[ 9][ 0] = x[ 4];  
-	B->val[ 9][ 1] = x[ 5];
-	B->val[ 9][ 2] = x[ 6];  
-	B->val[ 9][ 3] = x[ 7];
-
-	B->val[10][ 0] = x[ 8];  
-	B->val[10][ 1] = x[ 9];
-	B->val[10][ 2] = x[10]; 
-	B->val[10][ 3] = x[11]; 
-
-	B->val[11][ 0] = x[12]; 
-	B->val[11][ 1] = x[13]; 
-	B->val[11][ 2] = x[14]; 
- 	B->val[11][ 3] = x[15]; 
-
-	B->val[ 4] = vaddq_u32(B->val[ 4], B->val[ 8]);
-	B->val[ 5] = vaddq_u32(B->val[ 5], B->val[ 9]);
-	B->val[ 6] = vaddq_u32(B->val[ 6], B->val[10]);
-	B->val[ 7] = vaddq_u32(B->val[ 7], B->val[11]);
-
-	// Give eqxorload precalculated load pointer
-	return (uint32x4x8_t *) ptr;
-}
-
-static inline void salsa20_block_loop2(uint32x4x16_t *B)
-{
-	uint32_t __attribute__((__aligned__(8))) x[16];
-	register uint32_t tmp1, tmp2, tmp3, tmp4;
 
 	// Working on right half
 	B->val[ 4] = veorq_u32(B->val[ 4], B->val[ 0]);
@@ -1340,60 +1253,123 @@ static inline void salsa20_block_loop2(uint32x4x16_t *B)
 	x[13] = B->val[ 7][ 1];
 	x[14] = B->val[ 7][ 2];
 	x[15] = B->val[ 7][ 3];
+	asm volatile("": : :"memory");
 
-#define ROTL(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
-#define QR(a, b, c, d)(		\
-	b ^= ROTL(a + d, 7),	\
-	c ^= ROTL(b + a, 9),	\
-	d ^= ROTL(c + b,13),	\
-	a ^= ROTL(d + c,18))
+#define ROR(a,b) a >> b | a << (32 - b)
+#define QuadRound(a, b, c, d, a1, a2, b1, b2, c1, c2, d1, d2, rot)		\
+	(tmp1 = a1 + a2,	\
+	tmp2 = b1 + b2,	\
+	tmp3 = c1 + c2,	\
+	tmp4 = d1 + d2),	\
+	(a ^= ROR(tmp1, rot),	\
+	b ^= ROR(tmp2, rot),	\
+	c ^= ROR(tmp3, rot),	\
+	d ^= ROR(tmp4, rot))
+	
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
 
-	// Loop fully unrolled
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
 
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
 
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
 
-	// Odd round
-	QR(x[ 0], x[ 4], x[ 8], x[12]);	// column 1
-	QR(x[ 5], x[ 9], x[13], x[ 1]);	// column 2
-	QR(x[10], x[14], x[ 2], x[ 6]);	// column 3
-	QR(x[15], x[ 3], x[ 7], x[11]);	// column 4	
-	// Even round
-	QR(x[ 0], x[ 1], x[ 2], x[ 3]);	// row 1
-	QR(x[ 5], x[ 6], x[ 7], x[ 4]);	// row 2
-	QR(x[10], x[11], x[ 8], x[ 9]);	// row 3
-	QR(x[15], x[12], x[13], x[14]);	// row 4
-#undef ROTL
-#undef QR
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+#undef QuadRound
+#undef ROR
+
 	B->val[ 8][ 0] = x[ 0];
 	B->val[ 8][ 1] = x[ 1]; 
 	B->val[ 8][ 2] = x[ 2];  
@@ -1418,10 +1394,11 @@ static inline void salsa20_block_loop2(uint32x4x16_t *B)
 	B->val[ 5] = vaddq_u32(B->val[ 5], B->val[ 9]);
 	B->val[ 6] = vaddq_u32(B->val[ 6], B->val[10]);
 	B->val[ 7] = vaddq_u32(B->val[ 7], B->val[11]);
+	}
 }
 
 //Neon & Non-temporal Load based eqxor load for scrypt_core(). X must be uint32x4x16_t*
-static inline void eqxorload64(uint32x4x16_t *X, uint32x4x8_t *V)
+static inline void eqxorload64(uint32x4x16_t *X, uint32x4x4_t *V)
 {
 	// Using non-temporal load pair. Might help expire L1keep prefetch.
 	asm(
@@ -1460,36 +1437,598 @@ static inline void eqxorload64(uint32x4x16_t *X, uint32x4x8_t *V)
 	X->val[ 7] = veorq_u32(X->val[ 7], X->val[15]);
 }
 
-//Neon store pair based memcpy alternative for scrypt_core(). X must be uint32x4x16_t*
-static inline void memcpy64(uint32x4x8_t *V, uint32x4x16_t *X)
+static inline void scryptNread_cycle(uint32x4x16_t *B, uint32x4x8_t *V)
 {
-	// Using store pair
-	asm(
-		"stp %q[DST1], %q[DST2], [%[SRC]]" "\n"
-		:  
-		: [DST1] "w" (X->val[ 0]), [DST2] "w" (X->val[ 1]), [SRC] "r" (V)
-		: "memory"
-	);
-	asm(
-		"stp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
-		:  
-		: [DST1] "w" (X->val[ 2]), [DST2] "w" (X->val[ 3]), [SRC] "r" (V)
-		: "memory"
-	);
-	asm(
-		"stp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
-		:  
-		: [DST1] "w" (X->val[ 4]), [DST2] "w" (X->val[ 5]), [SRC] "r" (V)
-		: "memory"
-	);
-	asm(
-		"stp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
-		:
-		: [DST1] "w" (X->val[ 6]), [DST2] "w" (X->val[ 7]), [SRC] "r" (V)
-		: "memory"
-	);
-}
+	uint32_t __attribute__((__aligned__(8))) x[17];
+	register uint32_t tmp1, tmp2, tmp3, tmp4;
+
+	uint32_t i = B->val[ 4][ 0];
+	i &= (uint32_t) 1048575;
+
+	uint32x4x4_t *Vptr = (uint32x4x4_t *) &V[i];
+
+	// Read loop
+	for (i = 0; i < 1048576; i++) {
  
+	// Using non-temporal load pair. Might help expire L1keep prefetch.
+	asm(
+		"ldnp %q[DST1], %q[DST2], [%[SRC]]" "\n"
+		: [DST1] "=w" (B->val[ 8]), [DST2] "=w" (B->val[ 9])
+		: [SRC] "r" (Vptr)
+		: "memory"
+	);
+	asm(
+		"ldnp %q[DST1], %q[DST2], [%[SRC],#32]" "\n"
+		: [DST1] "=w" (B->val[10]), [DST2] "=w" (B->val[11])
+		: [SRC] "r" (Vptr)
+		: "memory"
+	);
+	/*asm(
+		"ldnp %q[DST1], %q[DST2], [%[SRC],#64]" "\n"
+		: [DST1] "=w" (B->val[12]), [DST2] "=w" (B->val[13])  
+		: [SRC] "r" (Vptr)
+		: "memory"
+	);
+	asm(
+		"ldnp %q[DST1], %q[DST2], [%[SRC],#96]" "\n"
+		: [DST1] "=w" (B->val[14]), [DST2] "=w" (B->val[15])
+		: [SRC] "r" (Vptr)
+		: "memory"
+	);*/
+
+	*(uint32x4x4_t *) &B->val[12] = vld4q_u32(((uint32_t *) Vptr) + 16);
+
+	B->val[ 0] = veorq_u32(B->val[ 0], B->val[ 8]);
+	B->val[ 1] = veorq_u32(B->val[ 1], B->val[ 9]);
+	B->val[ 2] = veorq_u32(B->val[ 2], B->val[10]);
+	B->val[ 3] = veorq_u32(B->val[ 3], B->val[11]);
+
+	B->val[ 4] = veorq_u32(B->val[ 4], B->val[12]);
+	B->val[ 5] = veorq_u32(B->val[ 5], B->val[13]);
+	B->val[ 6] = veorq_u32(B->val[ 6], B->val[14]);
+	B->val[ 7] = veorq_u32(B->val[ 7], B->val[15]);
+
+	// Working on left half
+	B->val[ 0] = veorq_u32(B->val[ 0], B->val[ 4]);
+	B->val[ 1] = veorq_u32(B->val[ 1], B->val[ 5]);
+	B->val[ 2] = veorq_u32(B->val[ 2], B->val[ 6]);
+	B->val[ 3] = veorq_u32(B->val[ 3], B->val[ 7]);
+
+	// Neon to generic register transfer stalls the pipeline
+	// Cortex a8 easily 20 cycles. load and store pairs 
+	// using 64 byte L1 cache buffer might be a work around.
+
+	x[ 0] = B->val[ 0][ 0];
+	x[ 1] = B->val[ 0][ 1];
+	x[ 2] = B->val[ 0][ 2];
+	x[ 3] = B->val[ 0][ 3];
+
+	x[ 4] = B->val[ 1][ 0];
+	x[ 5] = B->val[ 1][ 1];
+	x[ 6] = B->val[ 1][ 2];
+	x[ 7] = B->val[ 1][ 3];
+
+	x[ 8] = B->val[ 2][ 0];
+	x[ 9] = B->val[ 2][ 1];
+	x[10] = B->val[ 2][ 2];
+	x[11] = B->val[ 2][ 3];
+
+	x[12] = B->val[ 3][ 0];
+	x[13] = B->val[ 3][ 1];
+	x[14] = B->val[ 3][ 2];
+	x[15] = B->val[ 3][ 3];
+
+#define ROR(a,b) a >> b | a << (32 - b)
+#define QuadRound(a, b, c, d, a1, a2, b1, b2, c1, c2, d1, d2, rot)		\
+	asm volatile("": : :"memory");	\
+	(tmp1 = a1 + a2,	\
+	tmp2 = b1 + b2,	\
+	tmp3 = c1 + c2,	\
+	tmp4 = d1 + d2),	\
+	(a ^= ROR(tmp1, rot),	\
+	b ^= ROR(tmp2, rot),	\
+	c ^= ROR(tmp3, rot),	\
+	d ^= ROR(tmp4, rot))
+	
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+#undef QuadRound
+#undef ROR
+
+	B->val[ 8][ 0] = x[ 0];
+	B->val[ 8][ 1] = x[ 1]; 
+	B->val[ 8][ 2] = x[ 2];  
+	B->val[ 8][ 3] = x[ 3];
+
+	B->val[ 9][ 0] = x[ 4];  
+	B->val[ 9][ 1] = x[ 5];
+	B->val[ 9][ 2] = x[ 6];  
+	B->val[ 9][ 3] = x[ 7];
+
+	B->val[10][ 0] = x[ 8];  
+	B->val[10][ 1] = x[ 9];
+	B->val[10][ 2] = x[10]; 
+	B->val[10][ 3] = x[11]; 
+
+	B->val[11][ 0] = x[12]; 
+	B->val[11][ 1] = x[13]; 
+	B->val[11][ 2] = x[14]; 
+ 	B->val[11][ 3] = x[15]; 
+
+	B->val[ 0] = vaddq_u32(B->val[ 0], B->val[ 8]);
+	B->val[ 1] = vaddq_u32(B->val[ 1], B->val[ 9]);
+	B->val[ 2] = vaddq_u32(B->val[ 2], B->val[10]);
+	B->val[ 3] = vaddq_u32(B->val[ 3], B->val[11]);
+
+
+	// Working on right half
+	B->val[ 4] = veorq_u32(B->val[ 4], B->val[ 0]);
+	B->val[ 5] = veorq_u32(B->val[ 5], B->val[ 1]);
+	B->val[ 6] = veorq_u32(B->val[ 6], B->val[ 2]);
+	B->val[ 7] = veorq_u32(B->val[ 7], B->val[ 3]);
+
+	// Neon to generic register transfer stalls the pipeline
+	// Cortex a8 easily 20 cycles. load and store pairs 
+	// using 64 byte L1 cache buffer might be a work around.
+	x[ 0] = B->val[ 4][ 0];
+	x[ 1] = B->val[ 4][ 1];
+	x[ 2] = B->val[ 4][ 2];
+	x[ 3] = B->val[ 4][ 3];
+
+	x[ 4] = B->val[ 5][ 0];
+	x[ 5] = B->val[ 5][ 1];
+	x[ 6] = B->val[ 5][ 2];
+	x[ 7] = B->val[ 5][ 3];
+
+	x[ 8] = B->val[ 6][ 0];
+	x[ 9] = B->val[ 6][ 1];
+	x[10] = B->val[ 6][ 2];
+	x[11] = B->val[ 6][ 3];
+
+	x[12] = B->val[ 7][ 0];
+	x[13] = B->val[ 7][ 1];
+	x[14] = B->val[ 7][ 2];
+	x[15] = B->val[ 7][ 3];
+
+	// Neon to general registers have high execution throughput
+	// So retrieving from B->val[ 4][ 0] risks data for prefetch index
+	// Taking too long. Copy to a generic register instead.
+	x[16] = x[ 0];
+
+#define ROR(a,b) a >> b | a << (32 - b)
+#define QuadRound(a, b, c, d, a1, a2, b1, b2, c1, c2, d1, d2, rot)		\
+	(tmp1 = a1 + a2,	\
+	tmp2 = b1 + b2,	\
+	tmp3 = c1 + c2,	\
+	tmp4 = d1 + d2),	\
+	(a ^= ROR(tmp1, rot),	\
+	b ^= ROR(tmp2, rot),	\
+	c ^= ROR(tmp3, rot),	\
+	d ^= ROR(tmp4, rot))
+	
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+#undef QuadRound
+#undef ROR
+
+	x[16] = (x[ 0] + x[16]) & (uint32_t) 1048575;  
+	Vptr = (uint32x4x4_t *) &V[x[16]];
+	__builtin_prefetch(Vptr);
+
+	asm volatile(
+		"prfm pldl1keep, [%[SRC],#64]" "\n"
+		:
+		: [SRC] "r" (Vptr)
+	);
+
+	B->val[ 8][ 0] = x[ 0];
+	B->val[ 8][ 1] = x[ 1]; 
+	B->val[ 8][ 2] = x[ 2];  
+	B->val[ 8][ 3] = x[ 3];
+
+	B->val[ 9][ 0] = x[ 4];  
+	B->val[ 9][ 1] = x[ 5];
+	B->val[ 9][ 2] = x[ 6];  
+	B->val[ 9][ 3] = x[ 7];
+
+	B->val[10][ 0] = x[ 8];  
+	B->val[10][ 1] = x[ 9];
+	B->val[10][ 2] = x[10]; 
+	B->val[10][ 3] = x[11]; 
+
+	B->val[11][ 0] = x[12]; 
+	B->val[11][ 1] = x[13]; 
+	B->val[11][ 2] = x[14]; 
+ 	B->val[11][ 3] = x[15]; 
+
+	B->val[ 4] = vaddq_u32(B->val[ 4], B->val[ 8]);
+	B->val[ 5] = vaddq_u32(B->val[ 5], B->val[ 9]);
+	B->val[ 6] = vaddq_u32(B->val[ 6], B->val[10]);
+	B->val[ 7] = vaddq_u32(B->val[ 7], B->val[11]);
+	}
+}
+
+static inline void salsa20_block_loop2(uint32x4x16_t *B)
+{
+	uint32_t __attribute__((__aligned__(8))) x[16];
+
+	// Working on right half
+	B->val[ 4] = veorq_u32(B->val[ 4], B->val[ 0]);
+	B->val[ 5] = veorq_u32(B->val[ 5], B->val[ 1]);
+	B->val[ 6] = veorq_u32(B->val[ 6], B->val[ 2]);
+	B->val[ 7] = veorq_u32(B->val[ 7], B->val[ 3]);
+
+	// Neon to generic register transfer stalls the pipeline
+	// Cortex a8 easily 20 cycles. load and store pairs 
+	// using 64 byte L1 cache buffer might be a work around.
+
+	x[ 0] = B->val[ 4][ 0];
+	x[ 1] = B->val[ 4][ 1];
+	x[ 2] = B->val[ 4][ 2];
+	x[ 3] = B->val[ 4][ 3];
+
+	x[ 4] = B->val[ 5][ 0];
+	x[ 5] = B->val[ 5][ 1];
+	x[ 6] = B->val[ 5][ 2];
+	x[ 7] = B->val[ 5][ 3];
+
+	x[ 8] = B->val[ 6][ 0];
+	x[ 9] = B->val[ 6][ 1];
+	x[10] = B->val[ 6][ 2];
+	x[11] = B->val[ 6][ 3];
+
+	x[12] = B->val[ 7][ 0];
+	x[13] = B->val[ 7][ 1];
+	x[14] = B->val[ 7][ 2];
+	x[15] = B->val[ 7][ 3];
+	asm volatile("": : :"memory");
+	register uint32_t tmp1, tmp2, tmp3, tmp4;
+
+#define ROR(a,b) a >> b | a << (32 - b)
+#define QuadRound(a, b, c, d, a1, a2, b1, b2, c1, c2, d1, d2, rot)		\
+	(tmp1 = a1 + a2,	\
+	tmp2 = b1 + b2,	\
+	tmp3 = c1 + c2,	\
+	tmp4 = d1 + d2),	\
+	(a ^= ROR(tmp1, rot),	\
+	b ^= ROR(tmp2, rot),	\
+	c ^= ROR(tmp3, rot),	\
+	d ^= ROR(tmp4, rot))
+	
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+	// Operate on columns.
+	QuadRound(x[ 4], x[ 9], x[14], x[ 3], x[ 0], \
+	x[12], x[ 5], x[ 1], x[10], x[ 6], x[15], x[11], 25);
+
+	QuadRound(x[ 8], x[13], x[ 2], x[ 7], x[ 4], \
+	x[ 0], x[ 9], x[ 5], x[14], x[10], x[ 3], x[15], 23);
+
+	QuadRound(x[12], x[ 1], x[ 6], x[11], x[ 8], \
+	x[ 4], x[13], x[ 9], x[ 2], x[14], x[ 7], x[ 3], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[12], \
+	x[ 8], x[ 1], x[13], x[ 6], x[ 2], x[11], x[ 7], 14);
+
+	// Operate on rows.
+	QuadRound(x[ 1], x[ 6], x[11], x[12], x[ 0], \
+	x[ 3], x[ 5], x[ 4], x[10], x[ 9], x[15], x[14], 25);
+
+	QuadRound(x[ 2], x[ 7], x[ 8], x[13], x[ 1], \
+	x[ 0], x[ 6], x[ 5], x[11], x[10], x[12], x[15], 23);
+
+	QuadRound(x[ 3], x[ 4], x[ 9], x[14], x[ 2], \
+	x[ 1], x[ 7], x[ 6], x[ 8], x[11], x[13], x[12], 19);
+
+	QuadRound(x[ 0], x[ 5], x[10], x[15], x[ 3], \
+	x[ 2], x[ 4], x[ 7], x[ 9], x[ 8], x[14], x[13], 14);
+
+#undef QuadRound
+#undef ROR
+
+	B->val[ 8][ 0] = x[ 0];
+	B->val[ 8][ 1] = x[ 1]; 
+	B->val[ 8][ 2] = x[ 2];  
+	B->val[ 8][ 3] = x[ 3];
+
+	B->val[ 9][ 0] = x[ 4];  
+	B->val[ 9][ 1] = x[ 5];
+	B->val[ 9][ 2] = x[ 6];  
+	B->val[ 9][ 3] = x[ 7];
+
+	B->val[10][ 0] = x[ 8];  
+	B->val[10][ 1] = x[ 9];
+	B->val[10][ 2] = x[10]; 
+	B->val[10][ 3] = x[11]; 
+
+	B->val[11][ 0] = x[12]; 
+	B->val[11][ 1] = x[13]; 
+	B->val[11][ 2] = x[14]; 
+ 	B->val[11][ 3] = x[15];
+
+	B->val[ 4] = vaddq_u32(B->val[ 4], B->val[ 8]);
+	B->val[ 5] = vaddq_u32(B->val[ 5], B->val[ 9]);
+	B->val[ 6] = vaddq_u32(B->val[ 6], B->val[10]);
+	B->val[ 7] = vaddq_u32(B->val[ 7], B->val[11]);
+}
+
 static inline void __attribute__((hot)) scrypt_core(uint32_t *Xsrc, uint32x4x8_t *V)
 {
 	// Create neon register work buffer.
@@ -1499,27 +2038,9 @@ static inline void __attribute__((hot)) scrypt_core(uint32_t *Xsrc, uint32x4x8_t
 	// memcpy for accurate work data copy.
 	memcpy(&X, Xsrc, 128);
 
-	uint32x4x8_t *Vptr = V;
+	scryptNsave_cycle(&X, V);
 
-	// Save loop
-	for (; Vptr < &V[1048576]; Vptr++) {
-		memcpy64(Vptr, &X);
-		salsa20_block_loop1(&X);
-		salsa20_block_loop2(&X);
-	}
-
-	// Calculate scratchpad scratchpad load memory address
-	uint32_t i = X.val[ 4][ 0];
-	i = i & (uint32_t) 1048575;
-
-	Vptr = &V[i];
-
-	// Read loop
-	for (i = 0; i < 1048576; i++) {
-		eqxorload64(&X, Vptr);
-		salsa20_block_loop1(&X);
-		Vptr = salsa20_block_loop2_prefetch(&X, V);
-	}
+	scryptNread_cycle(&X, V);
 
 	// Store results
 	memcpy(Xsrc, &X, 128);
@@ -3873,7 +4394,7 @@ unsigned char __attribute__((malloc)) *scrypt_buffer_alloc(int N, int forceThrou
 	}
 	#endif
 	size_t size = (throughput * 32 * (N + 1) * sizeof(uint32_t));
-	size = roundUp(size, 64); // Round up to multiple of cache line size
+//	size = roundUp(size, 64); // Round up to multiple of cache line size
 
 #ifdef __linux__
 	pthread_mutex_lock(&alloc_mutex);
@@ -3900,8 +4421,8 @@ unsigned char __attribute__((malloc)) *scrypt_buffer_alloc(int N, int forceThrou
 
 	if (!disable_hugepages)
 	{
-		//unsigned char* m_memory = (unsigned char*)aligned_alloc(64,size);
-		unsigned char* m_memory = (unsigned char*)(mmap(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_POPULATE | MAP_NONBLOCK | MAP_NORESERVE, 0, 0));
+		unsigned char* m_memory = (unsigned char*)aligned_alloc(16,size);
+		m_memory = (unsigned char*)(mmap(m_memory, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_POPULATE | MAP_NONBLOCK | MAP_NORESERVE, 0, 0));
 		if (m_memory == MAP_FAILED)
 		{
 			pthread_mutex_lock(&alloc_mutex);
@@ -3933,13 +4454,13 @@ unsigned char __attribute__((malloc)) *scrypt_buffer_alloc(int N, int forceThrou
 			hugepages_successes++;
 			pthread_mutex_unlock(&alloc_mutex);
 		}
-		#define is_aligned(POINTER, BYTE_COUNT) \
+/*		#define is_aligned(POINTER, BYTE_COUNT) \
 			(((uintptr_t)(const void *)(POINTER)) % (BYTE_COUNT) == 0)
 
 		// Align pointer start point to cache line size
 		while(!is_aligned(m_memory, 64)) {
 			*m_memory++;
-		}
+		}*/
 		return m_memory;
 	}
 	else
@@ -4010,7 +4531,7 @@ unsigned char __attribute__((malloc)) *scrypt_buffer_alloc(int N, int forceThrou
 #define UNION_CAST(x, destType) \
    (((union {__typeof__(x) a; destType b;})x).b)
 
-static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
+static inline void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
 	uint32_t *midstate, unsigned char *scratchpad)
 {
 	uint32_t tstate[ 8] __attribute__((__aligned__(16))), ostate[ 8] __attribute__((__aligned__(16)));
@@ -4226,7 +4747,24 @@ static void scrypt_1024_1_1_256_24way(const uint32_t *input,
 }
 #endif /* HAVE_SCRYPT_6WAY */
 #pragma GCC pop_options
-extern int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done,
+
+void randombytes(size_t length, unsigned char *randomString) { // const size_t length, supra
+
+	static unsigned char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-#'?!";
+
+	if(length) {
+		if(randomString) {
+			unsigned l = (unsigned) (sizeof(charset) -1);
+			for(unsigned n = 0;n < length;n++) {
+				unsigned key = rand() % l;          // per-iteration instantiation
+				randomString[n] = charset[key];
+			}
+			randomString[length] = '\0';
+		}
+	}
+}
+
+extern int inline scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done,
 	unsigned char *scratchbuf, uint32_t N, int forceThroughput)
 {
 	int throughput = (forceThroughput != -1) ? forceThroughput : scrypt_best_throughput();
@@ -4257,9 +4795,13 @@ extern int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, ui
 		throughput = forceThroughput;
 	}*/
 
-	for (i = 0; i < throughput; i++)
-		newmemcpy(data + i * 20, pdata, 80);
-	
+	for (i = 0; i < throughput; i++) {
+		if(opt_benchmark) {
+			randombytes(80, (unsigned char *) data + i * 20); // If benchmarking generate random blockheader
+		} else {
+			newmemcpy(data + i * 20, pdata, 80);
+		}
+	}
 	//sha256_init_armv8(midstate);
 	sha256_transform_armv8_init(midstate, data);
 	
@@ -4295,11 +4837,13 @@ extern int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, ui
 			scrypt_1024_1_1_256(data, hash, midstate, scratchbuf);
 
 		for (i = 0; i < throughput; i++) {
-			if (unlikely(hash[i * 8 + 7] <= Htarg && fulltest(hash + i * 8, ptarget))) {
-				work_set_target_ratio(work, hash + i * 8);
-				*hashes_done = n - pdata[19] + 1;
-				pdata[19] = data[i * 20 + 19];
-				return 1;
+			if (hash[i * 8 + 7] <= Htarg) {
+				if(fulltest(hash + i * 8, ptarget)) {
+					work_set_target_ratio(work, hash + i * 8);
+					*hashes_done = n - pdata[19] + 1;
+					pdata[19] = data[i * 20 + 19];
+					return 1;
+				}
 			}
 		}
 	} while (likely(n < max_nonce && !work_restart[thr_id].restart));
