@@ -560,7 +560,7 @@ static bool get_mininginfo(CURL *curl, struct work *work)
 	return true;
 }
 
-#define BLOCK_VERSION_CURRENT 3
+#define BLOCK_VERSION_CURRENT 6
 
 static bool gbt_work_decode(const json_t *val, struct work *work)
 {
@@ -575,8 +575,6 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 	uchar(*merkle_tree)[32] = NULL;
 	bool coinbase_append = false;
 	bool submit_coinbase = false;
-	bool version_force = false;
-	bool version_reduce = false;
 	json_t *tmp, *txa;
 	bool rc = false;
 
@@ -591,10 +589,6 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 				coinbase_append = true;
 			else if (!strcmp(s, "submit/coinbase"))
 				submit_coinbase = true;
-			else if (!strcmp(s, "version/force"))
-				version_force = true;
-			else if (!strcmp(s, "version/reduce"))
-				version_reduce = true;
 		}
 	}
 
@@ -612,18 +606,15 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		goto out;
 	}
 	version = (uint32_t) json_integer_value(tmp);
-	if ((version & 0xffU) > BLOCK_VERSION_CURRENT) {
-		if (version_reduce) {
-			version = (version & ~0xffU) | BLOCK_VERSION_CURRENT;
-		} else if (have_gbt && allow_getwork && !version_force) {
+	if ((version & 0xffU) <= BLOCK_VERSION_CURRENT) {
+        if (have_gbt && allow_getwork) {
 			applog(LOG_DEBUG, "Switching to getwork, gbt version %d", version);
 			have_gbt = false;
 			goto out;
-		} else if (!version_force) {
-			applog(LOG_ERR, "Unrecognized block version: %u", version);
-			goto out;
 		}
-	}
+	} else {
+        allow_getwork = false;
+    }
 
 	if (unlikely(!jobj_binary(val, "previousblockhash", prevhash, sizeof(prevhash)))) {
 		applog(LOG_ERR, "JSON invalid previousblockhash");
@@ -1671,7 +1662,7 @@ static void *miner_thread(void *userdata)
 
 		}
 	}
-	
+
 		scratchbuf = scrypt_buffer_alloc(opt_scrypt_n, mythr->forceThroughput);
 		if (!scratchbuf) {
 			applog(LOG_ERR, "scrypt buffer allocation failed");
@@ -2364,7 +2355,7 @@ void parse_arg(int key, char *arg)
 		if (v < 0 || v > 9999) /* sanity check */
 			show_usage_and_exit(1);
 		opt_n_oneway_threads = v;
-		break;		
+		break;
 	case 'u':
 		free(rpc_user);
 		rpc_user = strdup(arg);
@@ -2599,7 +2590,7 @@ void parse_arg(int key, char *arg)
 			show_usage_and_exit(1);
 		opt_affinity_stride = v;
 		use_affinity_mask = -1;
-		break;	
+		break;
 	case 1051: // "cpu-affinity-default-index"
 		if (use_affinity_mask == 1){
 			applog(LOG_ERR, "BOTH --cpu-affinity and --cpu-affinity-stride have been defined!  Pick one or the other!");
@@ -2610,7 +2601,7 @@ void parse_arg(int key, char *arg)
 			show_usage_and_exit(1);
 		opt_affinity_default_index = v;
 		use_affinity_mask = -1;
-		break;	
+		break;
 	case 1052: // "cpu-affinity-oneway-index"
 		if (use_affinity_mask == 1){
 			applog(LOG_ERR, "BOTH --cpu-affinity and --cpu-affinity-stride have been defined!  Pick one or the other!");
@@ -2621,7 +2612,7 @@ void parse_arg(int key, char *arg)
 			show_usage_and_exit(1);
 		opt_affinity_oneway_index = v;
 		use_affinity_mask = -1;
-		break;	
+		break;
 	case 2000: // "ryzen"
 		opt_ryzen_1x = true;
 		break;
@@ -3003,7 +2994,7 @@ int main(int argc, char *argv[]) {
 			return 1;
 		if (i >= opt_n_default_threads)
 		{
-			thr->forceThroughput = 1;	
+			thr->forceThroughput = 1;
 		}
 		else
 		{
