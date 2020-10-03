@@ -18,7 +18,7 @@ RUN		apt-get install -qqy libssl-dev
 RUN		apt-get install -qqy libgmp-dev
 RUN   apt-get install -qqy libjansson-dev
 
-RUN		git clone https://github.com/fireworm71/veriumMiner
+RUN		git clone https://github.com/VeriConomy/veriumMiner
 
 RUN		cd veriumMiner && ./build.sh
 

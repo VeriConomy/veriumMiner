@@ -4,7 +4,7 @@ veriumMiner
 This is a multi-threaded CPU miner for Verium using scrypt²,
 fork of [tpruvot](//github.com/tpruvot)'s cpuminer-multi (see AUTHORS for list of contributors).
 
-# [Latest Binaries here](https://github.com/fireworm71/veriumMiner/releases/latest)
+# [Latest Binaries here](https://github.com/VeriConomy/veriumMiner/releases/latest)
 
 #### Table of contents
 
@@ -23,11 +23,11 @@ fork of [tpruvot](//github.com/tpruvot)'s cpuminer-multi (see AUTHORS for list o
 Overview
 ========
 To use this miner, you can do one of the following:
-* Grab a precompiled exe [here](https://github.com/fireworm71/veriumMiner/releases/latest).
+* Grab a precompiled exe [here](https://github.com/VeriConomy/veriumMiner/releases/latest).
 * Build from source: Easy:
   ```
   [install dependencies for your os]
-  git clone https://github.com/fireworm71/veriumMiner
+  git clone https://github.com/VeriConomy/veriumMiner
   cd veriumMiner
   ./build.sh
   ./cpuminer ...
@@ -35,7 +35,7 @@ To use this miner, you can do one of the following:
 * Build from source: Advanced:
   ```
   [install dependencies for your os]
-  git clone https://github.com/fireworm71/veriumMiner
+  git clone https://github.com/VeriConomy/veriumMiner
   cd veriumMiner
   ./autogen.sh
   perl nomacro.pl
@@ -46,9 +46,9 @@ To use this miner, you can do one of the following:
 
 Download
 ========
- * Git tree:   https://github.com/fireworm71/veriumMiner
- * Clone with `git clone https://github.com/fireworm71/veriumMiner`
- * [Latest Binaries here](https://github.com/fireworm71/veriumMiner/releases/latest)
+ * Git tree:   https://github.com/VeriConomy/veriumMiner
+ * Clone with `git clone https://github.com/VeriConomy/veriumMiner`
+ * [Latest Binaries here](https://github.com/VeriConomy/veriumMiner/releases/latest)
 
 Dependencies
 ============
@@ -58,7 +58,7 @@ Dependencies
  * pthreads
  * zlib (for curl/ssl)
 
- * Ubuntu / Debian: 
+ * Ubuntu / Debian:
   * `apt-get install automake autoconf pkg-config libcurl4-openssl-dev libjansson-dev libssl-dev libgmp-dev zlib1g-dev`
  * FreeBSD:
   * `pkg install automake autoconf git`
@@ -119,7 +119,7 @@ https://netix.dl.sourceforge.net/project/ezwinports/make-4.2.1-without-guile-w32
  * Download and extract the Miner from Git, place it in C:\msys64
  * Open MSYS2 MinGW64 Shell:
 ```
-cd /veriumMiner-main
+cd /veriumMiner-master
 ./mingw64.sh
 ```
  * If deploying to another computer, you will also need to copy: `libeay32.dll`, `libjansson-4.dll`, and `libwinpthread-1.dll` from the `C:\msys64\mingw64\bin` folder, as well as `cpuminer.exe`.
@@ -132,7 +132,7 @@ cd /veriumMiner-main
    * To use NEON instructions, add `-mfpu=neon` to CFLAGS.
  * x86:
    * The miner checks for SSE2 instructions support at runtime, and uses them if they are available.
- * x86-64:	
+ * x86-64:
    * The miner can take advantage of AVX, AVX2 and XOP instructions, but only if both the CPU and the operating system support them.
      * Linux supports AVX starting from kernel version 2.6.30.
      * FreeBSD supports AVX starting with 9.1-RELEASE.
@@ -144,7 +144,7 @@ Usage instructions
 ==================
 Run "cpuminer --help" to see options.
 
-### HugePages 
+### HugePages
 HugePages allow for faster memory lookups, which is very important for this miner.  Enabling HugePages typically gets 10% or more performance.
 
 #### HugePages (Linux)
@@ -162,15 +162,15 @@ To verify the status of `transparent_hugepages`
 `cat /sys/kernel/mm/transparent_hugepage/enabled`  (`[]` will show around the current status).
 
 To enable `preallocated` hugepages (on Ubuntu 16.04), first check that you have `/proc/sys/vm/nr_hugepages` by doing `ls /proc/sys/vm` (you should see `nr_hugepages` in the print out).  Then,
-1. `sudo nano /etc/sysctl.conf`, 
-2. scroll to the bottom, 
+1. `sudo nano /etc/sysctl.conf`,
+2. scroll to the bottom,
 3. type in `vm.nr_hugepages=size`
 4. `Ctrl+O`, then `[Enter]`, then `Ctrl+X`.
 5. `sudo sysctl -p`
 
 To disable:
-1. `sudo nano /etc/sysctl.conf`, 
-2. scroll to the bottom, 
+1. `sudo nano /etc/sysctl.conf`,
+2. scroll to the bottom,
 3. remove the line `vm.nr_hugepages=size`
 4. `Ctrl+O`, then `[Enter]`, then `Ctrl+X`.
 5. `sudo sysctl -p`
@@ -179,7 +179,7 @@ Note that you can also reboot and this will cause HugePages to allocate / deallo
 
 When enabling, you should see `vm.nr_hugepages=size` print out on the console.  If not, check your distro.  You may need to recompile your kernel to enable this.  You can also verify that memory is allocated by running `free` and seeing that you now have a ton of memory allocated, but aren't running anything that's using it.
 
-`size` = (the amount of memory each miner thread needs) / (2048 * 1024).  
+`size` = (the amount of memory each miner thread needs) / (2048 * 1024).
 
 How much memory is be used per thread?
 * 1way : 128MB -> nr_hugepages = 65.
@@ -189,7 +189,7 @@ How much memory is be used per thread?
 * ARMv7 (3way) : 384MB -> nr_hugepages = 193.
 * ARMv8 (3way) : 384MB -> nr_hugepages = 193.
 
-Multiply that number by the number of threads, and you will have the size needed.  Note, you may not have enough RAM for this on ARM SoCs.  The miner should still work, but it will not be as optimal. 
+Multiply that number by the number of threads, and you will have the size needed.  Note, you may not have enough RAM for this on ARM SoCs.  The miner should still work, but it will not be as optimal.
 
 For example, 4 threads on an SSE4, you'd type `vm.nr_hugepages=772`.  Since 4 (threads) * 193 (hugepages per thread) = 772.
 
@@ -197,7 +197,7 @@ For example, 4 threads on an SSE4, you'd type `vm.nr_hugepages=772`.  Since 4 (t
 #### HugePages (Windows)
 
  * You need to run the miner with "Run As Administrator" on Windows.
- * You need to edit your system's group policies to enable locking large pages. Here are the steps from MSDN: 
+ * You need to edit your system's group policies to enable locking large pages. Here are the steps from MSDN:
 
  1. On the Start menu, click Run. In the Open box, type gpedit.msc.
  2. On the Local Group Policy Editor console, expand Computer Configuration, and then expand Windows Settings.
@@ -231,10 +231,10 @@ Ryzen's implementation of AVX2 is ... subpar.  Please pass `--ryzen` on the comm
 
 Use the --proxy option.
 
-To use a SOCKS proxy, add a socks4:// or socks5:// prefix to the proxy host  
+To use a SOCKS proxy, add a socks4:// or socks5:// prefix to the proxy host
 Protocols socks4a and socks5h, allowing remote name resolving, are also available since libcurl 7.18.0.
 
-If no protocol is specified, the proxy is assumed to be a HTTP proxy.  
+If no protocol is specified, the proxy is assumed to be a HTTP proxy.
 When the --proxy option is not used, the program honors the http_proxy and all_proxy environment variables.
 
 GCC
@@ -258,7 +258,7 @@ Credits
 CPUMiner-multi was forked from pooler's CPUMiner, and has been started by Lucas Jones.
 * [tpruvot](https://github.com/tpruvot) added all the recent features and newer algorythmns
 * [Wolf9466](https://github.com/wolf9466) helped with Intel AES-NI support for CryptoNight
-* [FireWorm71](https://github.com/Fireworm71) helped with ARMv8 implementation, and memory optimizations.
+* [fireworm71](https://github.com/fireworm71) helped with ARMv8 implementation, and memory optimizations.
 
 Donations
 =======
