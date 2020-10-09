@@ -53,10 +53,10 @@ static float linux_cputemp(int core)
 
 	if (!fd)
                 fd = fopen(HWMON_ALT5, "r");
-        
+
 	if (!fd)
                 fd = fopen(HWMON_OPI, "r");
-	
+
 	if (!fd)
                 fd = fopen(HWMON_ARMBIAN, "r");
 
@@ -84,12 +84,12 @@ static uint32_t linux_cpufreq(int core)
 
 	if (!fd)
 	  fd = fopen(CPUFREQ_PATH_ALT, "r");
-	
+
 	if (!fd)
 	  fd = fopen(CPUFREQ_PATH_OPI, "r");
-	
+
 	if (!fd)
-	  return freq;	
+	  return freq;
 
 	if (!fscanf(fd, "%d", &freq))
 		return freq;
@@ -135,11 +135,13 @@ int cpu_fanpercent()
 	return 0;
 }
 
-#if !defined( __arm__ ) && !defined(__aarch64__)
+#if !defined(__arm__) && !defined(__aarch64__)
 static inline void cpuid(int functionnumber, int output[4]) {
-#if defined (_MSC_VER) || defined (__INTEL_COMPILER)
-	// Microsoft or Intel compiler, intrin.h included
+#ifdef _MSC_VER
+	// Microsoft compiler, intrin.h included
 	__cpuidex(output, functionnumber, 0);
+#elif defined(__INTEL_COMPILER)
+	__cpuid(output, functionnumber);
 #elif defined(__GNUC__) || defined(__clang__)
 	// use inline assembly, Gnu/AT&T syntax
 	int a, b, c, d;
@@ -269,7 +271,7 @@ void cpu_getmodelid(char *outbuf, size_t maxsz)
 
 bool has_aes_ni()
 {
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 	return false;
 #else
 	int cpu_info[4] = { 0 };
@@ -280,7 +282,7 @@ bool has_aes_ni()
 
 void cpu_bestfeature(char *outbuf, size_t maxsz)
 {
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 	sprintf(outbuf, "ARM");
 #else
 	int cpu_info[4] = { 0 };

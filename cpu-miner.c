@@ -90,7 +90,7 @@ bool opt_debug_diff = false;
 bool opt_protocol = false;
 bool opt_benchmark = false;
 bool opt_redirect = true;
-bool opt_showdiff = false;
+bool opt_showdiff = true;
 bool opt_extranonce = true;
 bool want_longpoll = true;
 bool have_longpoll = false;
@@ -110,7 +110,6 @@ static int opt_fail_pause = 10;
 static int opt_time_limit = 0;
 int opt_timeout = 300;
 static int opt_scantime = 5;
-static const bool opt_time = true;
 static enum algos opt_algo = ALGO_SCRYPT;
 static int opt_scrypt_n = 1048576;
 static int opt_pluck_n = 128;
@@ -229,7 +228,7 @@ Options:\n\
       --no-color        disable colored output\n\
   -D, --debug           enable debug output\n\
   -P, --protocol-dump   verbose dump of protocol-level activities\n\
-      --show-diff       display submitted block and net difficulty\n"
+      --hide-diff       hide submitted block and net difficulty\n"
 #ifdef HAVE_SYSLOG_H
 "\
   -S, --syslog          use system log for output messages\n"
@@ -314,7 +313,7 @@ static struct option const options[] = {
 	{ "retry-pause", 1, NULL, 'R' },
 	{ "randomize", 0, NULL, 1024 },
 	{ "scantime", 1, NULL, 's' },
-	{ "show-diff", 0, NULL, 1013 },
+    { "hide-diff", 0, NULL, 1014 },
 #ifdef HAVE_SYSLOG_H
 	{ "syslog", 0, NULL, 'S' },
 #endif
@@ -679,13 +678,18 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		cbvalue = (int64_t) (json_is_integer(tmp) ? json_integer_value(tmp) : json_number_value(tmp));
 		cbtx = (uchar*) malloc(256);
 		le32enc((uint32_t *)cbtx, 1); /* version */
-		cbtx[4] = 1; /* in-counter */
-		memset(cbtx+5, 0x00, 32); /* prev txout hash */
+        le32enc((uint32_t *)(cbtx+4 ), (uint32_t)curtime); /* Time */
+		memset(cbtx+9, 0x00, 32); /* prev txout hash */
 		le32enc((uint32_t *)(cbtx+37), 0xffffffff); /* prev txout index */
 		cbtx_size = 43;
 		/* BIP 34: height in coinbase */
-		for (n = work->height; n; n >>= 8)
+	    for (n = work->height; n; n >>= 8)
 			cbtx[cbtx_size++] = n & 0xff;
+                /* If the last byte pushed is >= 0x80, then we need to add
+                   another zero byte to signal that the block height is a
+                   positive number.  */
+                if (cbtx[cbtx_size - 1] & 0x80)
+                        cbtx[cbtx_size++] = 0;
 		cbtx[42] = cbtx_size - 43;
 		cbtx[41] = cbtx_size - 42; /* scriptsig length */
 		le32enc((uint32_t *)(cbtx+cbtx_size), 0xffffffff); /* sequence */
@@ -2128,7 +2132,7 @@ static void *stratum_thread(void *userdata)
 				}
 				restart_threads();
 			} else if (opt_debug && !opt_quiet) {
-					applog(LOG_BLUE, "%s asks job %d for block %d", short_url,
+					applog(LOG_BLUE, "%s asks job %lu for block %d", short_url,
 						strtoul(stratum.job.job_id, NULL, 16), stratum.bloc_height);
 			}
 		}
@@ -2482,8 +2486,8 @@ void parse_arg(int key, char *arg)
 	case 1012:
 		opt_extranonce = false;
 		break;
-	case 1013:
-		opt_showdiff = true;
+	case 1014:
+		opt_showdiff = false;
 		break;
 	case 1016:			/* --coinbase-addr */
 		pk_script_size = address_to_script(pk_script, sizeof(pk_script), arg);
