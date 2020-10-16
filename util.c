@@ -813,7 +813,7 @@ size_t address_to_script(unsigned char *out, size_t outsz, const char *addr)
 	if (addrver < 0)
 		return 0;
 	switch (addrver) {
-		case 5:    /* Bitcoin script hash */
+		case 132:    /* Verium script hash */
 		case 196:  /* Testnet script hash */
 			if (outsz < (rv = 23))
 				return rv;
@@ -2304,4 +2304,3 @@ void print_hash_tests(void)
 
 	free(scratchbuf);
 }
-

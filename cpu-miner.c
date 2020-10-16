@@ -679,38 +679,46 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		cbtx = (uchar*) malloc(256);
 		le32enc((uint32_t *)cbtx, 1); /* version */
         le32enc((uint32_t *)(cbtx+4 ), (uint32_t)curtime); /* Time */
+        cbtx[8] = 1; /* out-counter */
 		memset(cbtx+9, 0x00, 32); /* prev txout hash */
-		le32enc((uint32_t *)(cbtx+37), 0xffffffff); /* prev txout index */
-		cbtx_size = 43;
+		le32enc((uint32_t *)(cbtx+41), 0xffffffff); /* prev txout index */
+		cbtx_size = 47;
 		/* BIP 34: height in coinbase */
-	    for (n = work->height; n; n >>= 8)
-			cbtx[cbtx_size++] = n & 0xff;
-                /* If the last byte pushed is >= 0x80, then we need to add
-                   another zero byte to signal that the block height is a
-                   positive number.  */
-                if (cbtx[cbtx_size - 1] & 0x80)
-                        cbtx[cbtx_size++] = 0;
-		cbtx[42] = cbtx_size - 43;
-		cbtx[41] = cbtx_size - 42; /* scriptsig length */
-		le32enc((uint32_t *)(cbtx+cbtx_size), 0xffffffff); /* sequence */
+		if (work->height >= 1 && work->height <= 16) {
+			/* Use OP_1-OP_16 to conform to Bitcoin's implementation. */
+			cbtx[46] = work->height + 0x50;
+			cbtx[cbtx_size++] = 0x00; /* OP_0; pads to 2 bytes */
+		} else {
+			for (n = work->height; n; n >>= 8) {
+				cbtx[cbtx_size++] = n & 0xff;
+				if (n < 0x100 && n >= 0x80)
+					cbtx[cbtx_size++] = 0;
+			}
+			cbtx[46] = cbtx_size - 47;
+		}
+		cbtx[45] = cbtx_size - 46; /* scriptsig length */
+		le32enc((uint32_t *)(cbtx+cbtx_size), 0); /* sequence */
 		cbtx_size += 4;
 		cbtx[cbtx_size++] = 1; /* out-counter */
 		le32enc((uint32_t *)(cbtx+cbtx_size), (uint32_t)cbvalue); /* value */
 		le32enc((uint32_t *)(cbtx+cbtx_size+4), cbvalue >> 32);
 		cbtx_size += 8;
-		cbtx[cbtx_size++] = (uint8_t) pk_script_size; /* txout-script length */
+		cbtx[cbtx_size++] = pk_script_size; /* txout-script length */
 		memcpy(cbtx+cbtx_size, pk_script, pk_script_size);
-		cbtx_size += (int) pk_script_size;
+		cbtx_size += pk_script_size;
 		le32enc((uint32_t *)(cbtx+cbtx_size), 0); /* lock time */
 		cbtx_size += 4;
+        cbtx[cbtx_size++] = 0;
+        cbtx[cbtx_size++] = 0;
 		coinbase_append = true;
 	}
 	if (coinbase_append) {
 		unsigned char xsig[100];
 		int xsig_len = 0;
+
 		if (*coinbase_sig) {
-			n = (int) strlen(coinbase_sig);
-			if (cbtx[41] + xsig_len + n <= 100) {
+			n = strlen(coinbase_sig);
+			if (cbtx[45] + xsig_len + n <= 100) {
 				memcpy(xsig+xsig_len, coinbase_sig, n);
 				xsig_len += n;
 			} else {
@@ -723,12 +731,12 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 			while (iter) {
 				unsigned char buf[100];
 				const char *s = json_string_value(json_object_iter_value(iter));
-				n = s ? (int) (strlen(s) / 2) : 0;
+				n = s ? strlen(s) / 2 : 0;
 				if (!s || n > 100 || !hex2bin(buf, s, n)) {
 					applog(LOG_ERR, "JSON invalid coinbaseaux");
 					break;
 				}
-				if (cbtx[41] + xsig_len + n <= 100) {
+				if (cbtx[45] + xsig_len + n <= 100) {
 					memcpy(xsig+xsig_len, buf, n);
 					xsig_len += n;
 				}
@@ -736,12 +744,12 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 			}
 		}
 		if (xsig_len) {
-			unsigned char *ssig_end = cbtx + 42 + cbtx[41];
-			int push_len = cbtx[41] + xsig_len < 76 ? 1 :
-			               cbtx[41] + 2 + xsig_len > 100 ? 0 : 2;
+			unsigned char *ssig_end = cbtx + 47 + cbtx[41];
+			int push_len = cbtx[45] + xsig_len < 76 ? 1 :
+			               cbtx[45] + 2 + xsig_len > 100 ? 0 : 2;
 			n = xsig_len + push_len;
-			memmove(ssig_end + n, ssig_end, cbtx_size - 42 - cbtx[41]);
-			cbtx[41] += n;
+			memmove(ssig_end + n, ssig_end, cbtx_size - 47 - cbtx[45]);
+			cbtx[45] += n;
 			if (push_len == 2)
 				*(ssig_end++) = 0x4c; /* OP_PUSHDATA1 */
 			if (push_len)
@@ -752,24 +760,25 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 	}
 
 	n = varint_encode(txc_vi, 1 + tx_count);
-	work->txs = (char*) malloc(2 * (n + cbtx_size + tx_size) + 1);
+	work->txs = malloc(2 * (n + cbtx_size + tx_size) + 1);
 	bin2hex(work->txs, txc_vi, n);
 	bin2hex(work->txs + 2*n, cbtx, cbtx_size);
 
 	/* generate merkle root */
-	merkle_tree = (uchar(*)[32]) calloc(((1 + tx_count + 1) & ~1), 32);
+	merkle_tree = malloc(32 * ((1 + tx_count + 1) & ~1));
 	sha256d(merkle_tree[0], cbtx, cbtx_size);
 	for (i = 0; i < tx_count; i++) {
 		tmp = json_array_get(txa, i);
 		const char *tx_hex = json_string_value(json_object_get(tmp, "data"));
-		const int tx_size = tx_hex ? (int) (strlen(tx_hex) / 2) : 0;
-		unsigned char *tx = (uchar*) malloc(tx_size);
-		if (!tx_hex || !hex2bin(tx, tx_hex, tx_size)) {
-			applog(LOG_ERR, "JSON invalid transactions");
-			free(tx);
-			goto out;
-		}
-		sha256d(merkle_tree[1 + i], tx, tx_size);
+		const int tx_size = tx_hex ? strlen(tx_hex) / 2 : 0;
+        unsigned char *tx = malloc(tx_size);
+        if (!tx_hex || !hex2bin(tx, tx_hex, tx_size)) {
+            applog(LOG_ERR, "JSON invalid transactions");
+            free(tx);
+            goto out;
+        }
+        sha256d(merkle_tree[1 + i], tx, tx_size);
+        free(tx);
 		if (!submit_coinbase)
 			strcat(work->txs, tx_hex);
 	}
@@ -793,7 +802,6 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 	work->data[17] = swab32(curtime);
 	work->data[18] = le32dec(&bits);
 	memset(work->data + 19, 0x00, 52);
-
 	work->data[20] = 0x80000000;
 	work->data[31] = 0x00000280;
 
@@ -813,8 +821,6 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		work->workid = strdup(json_string_value(tmp));
 	}
 
-	rc = true;
-out:
 	/* Long polling */
 	tmp = json_object_get(val, "longpollid");
 	if (want_longpoll && json_is_string(tmp)) {
@@ -823,14 +829,17 @@ out:
 		if (!have_longpoll) {
 			char *lp_uri;
 			tmp = json_object_get(val, "longpolluri");
-			lp_uri = json_is_string(tmp) ? strdup(json_string_value(tmp)) : rpc_url;
+			lp_uri = strdup(json_is_string(tmp) ? json_string_value(tmp) : rpc_url);
 			have_longpoll = true;
 			tq_push(thr_info[longpoll_thr_id].q, lp_uri);
 		}
 	}
 
-	free(merkle_tree);
+	rc = true;
+
+out:
 	free(cbtx);
+	free(merkle_tree);
 	return rc;
 }
 
