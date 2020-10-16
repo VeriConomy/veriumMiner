@@ -1941,7 +1941,6 @@ start:
                 req = (char*) malloc(strlen(gbt_lp_req) + strlen(lp_id) + 1);
                 sprintf(req, gbt_lp_req, lp_id);
             }
-            val = json_rpc_call(curl, rpc_url, rpc_userpass, getwork_req, &err, JSON_RPC_LONGPOLL);
             val = json_rpc_call(curl, lp_url, rpc_userpass,
                         req ? req : getwork_req, &err,
                         JSON_RPC_LONGPOLL);
