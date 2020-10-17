@@ -744,11 +744,11 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
             }
         }
         if (xsig_len) {
-            unsigned char *ssig_end = cbtx + 47 + cbtx[41];
+            unsigned char *ssig_end = cbtx + 46 + cbtx[45];
             int push_len = cbtx[45] + xsig_len < 76 ? 1 :
                            cbtx[45] + 2 + xsig_len > 100 ? 0 : 2;
             n = xsig_len + push_len;
-            memmove(ssig_end + n, ssig_end, cbtx_size - 47 - cbtx[45]);
+            memmove(ssig_end + n, ssig_end, cbtx_size - 46 - cbtx[45]);
             cbtx[45] += n;
             if (push_len == 2)
                 *(ssig_end++) = 0x4c; /* OP_PUSHDATA1 */
@@ -766,7 +766,7 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 
     /* generate merkle root */
     merkle_tree = malloc(32 * ((1 + tx_count + 1) & ~1));
-    sha256d(merkle_tree[0], cbtx, cbtx_size);
+    sha256d(merkle_tree[0], cbtx, cbtx_size-2);
     for (i = 0; i < tx_count; i++) {
         tmp = json_array_get(txa, i);
         const char *tx_hex = json_string_value(json_object_get(tmp, "data"));
