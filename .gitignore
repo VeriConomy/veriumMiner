@@ -51,3 +51,4 @@ sign/
 sign.sh
 
 compat/curl-for-windows/
+/.vs
