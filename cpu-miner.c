@@ -76,11 +76,6 @@ struct workio_cmd {
     } u;
 };
 
-static const char *algo_names[] = {
-    "scrypt²",
-    "\0"
-};
-
 bool opt_debug = false;
 bool opt_debug_diff = false;
 bool opt_protocol = false;
@@ -106,9 +101,6 @@ static int opt_fail_pause = 10;
 static int opt_time_limit = 0;
 int opt_timeout = 300;
 static int opt_scantime = 5;
-static int opt_scrypt_n = 1048576;
-static int opt_pluck_n = 128;
-static unsigned int opt_nfactor = 6;
 int opt_n_default_threads = 0;
 int opt_n_oneway_threads = 0;
 int opt_n_total_threads = 0;
@@ -1651,7 +1643,7 @@ static void *miner_thread(void *userdata)
         }
     }
 
-        scratchbuf = scrypt_buffer_alloc(opt_scrypt_n, mythr->forceThroughput);
+        scratchbuf = scrypt_buffer_alloc(1048576, mythr->forceThroughput);
         if (!scratchbuf) {
             applog(LOG_ERR, "scrypt buffer allocation failed");
             pthread_mutex_lock(&applog_lock);
@@ -1769,11 +1761,8 @@ static void *miner_thread(void *userdata)
         max64 *= (int64_t) thr_hashrates[thr_id];
 
         if (max64 <= 0) {
-            max64 = opt_scrypt_n < 16 ? 0x3ffff : 0x3fffff / opt_scrypt_n;
-                if (opt_nfactor > 3)
-                    max64 >>= (opt_nfactor - 3);
-                else if (opt_nfactor > 16)
-                    max64 = 0xF;
+            max64 = 1048576 < 16 ? 0x3ffff : 0x3fffff / 1048576;
+            max64 >>= 3;
         }
         if ((*nonceptr) + max64 > end_nonce)
             max_nonce = end_nonce;
@@ -1787,7 +1776,7 @@ static void *miner_thread(void *userdata)
             firstwork_time = time(NULL);
 
         /* scan nonces for a proof-of-work hash */
-        rc = scanhash_scrypt(thr_id, &work, max_nonce, &hashes_done, scratchbuf, opt_scrypt_n, mythr->forceThroughput);
+        rc = scanhash_scrypt(thr_id, &work, max_nonce, &hashes_done, scratchbuf, 1048576, mythr->forceThroughput);
 
         /* record scanhash elapsed time */
         gettimeofday(&tv_end, NULL);
