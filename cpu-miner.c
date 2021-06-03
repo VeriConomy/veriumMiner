@@ -76,10 +76,6 @@ struct workio_cmd {
     } u;
 };
 
-enum algos {
-    ALGO_SCRYPT      /* scrypt */
-};
-
 static const char *algo_names[] = {
     "scrypt²",
     "\0"
@@ -110,7 +106,6 @@ static int opt_fail_pause = 10;
 static int opt_time_limit = 0;
 int opt_timeout = 300;
 static int opt_scantime = 5;
-static enum algos opt_algo = ALGO_SCRYPT;
 static int opt_scrypt_n = 1048576;
 static int opt_pluck_n = 128;
 static unsigned int opt_nfactor = 6;
@@ -400,7 +395,7 @@ static void affine_to_cpu_mask(int id, unsigned long mask) { }
 
 void get_currentalgo(char* buf, int sz)
 {
-    snprintf(buf, sz, "%s", algo_names[opt_algo]);
+    snprintf(buf, sz, "%s", "scrypt");
 }
 
 void proper_exit(int reason)
@@ -549,7 +544,7 @@ static bool get_mininginfo(CURL *curl, struct work *work)
                             strcat(netinfo, srate);
                         }
                         applog(LOG_BLUE, "%s block %d, %s",
-                            algo_names[opt_algo], work->height, netinfo);
+                            "scrypt", work->height, netinfo);
                     }
                 }
             }
@@ -930,10 +925,6 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
             uchar hash[32];
 
             bin2hex(noncestr, (const unsigned char *)work->data + 39, 4);
-            switch(opt_algo) {
-            default:
-                break;
-            }
             char *hashhex = abin2hex(hash, 32);
             snprintf(s, JSON_BUF_LEN,
                     "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":4}\r\n",
@@ -942,11 +933,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
         } else {
             char *xnonce2str;
 
-            switch (opt_algo) {
-            default:
-                le32enc(&ntime, work->data[17]);
-                le32enc(&nonce, work->data[19]);
-            }
+            le32enc(&ntime, work->data[17]);
+            le32enc(&nonce, work->data[19]);
 
             bin2hex(ntimestr, (const unsigned char *)(&ntime), 4);
             bin2hex(noncestr, (const unsigned char *)(&nonce), 4);
@@ -1031,10 +1019,6 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 
             bin2hex(noncestr, (const unsigned char *)work->data + 39, 4);
 
-            switch(opt_algo) {
-            default:
-                break;
-            }
             hashhex = abin2hex(&hash[0], 32);
             snprintf(s, JSON_BUF_LEN,
                     "{\"method\": \"submit\", \"params\": "
@@ -1467,10 +1451,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
         memcpy(work->xnonce2, sctx->job.xnonce2, sctx->xnonce2_size);
 
         /* Generate merkle root */
-        switch (opt_algo) {
-            default:
-                sha256d(merkle_root, sctx->job.coinbase, (int) sctx->job.coinbase_size);
-        }
+        sha256d(merkle_root, sctx->job.coinbase, (int) sctx->job.coinbase_size);
 
         if (!headersize)
         for (i = 0; i < sctx->job.merkle_count; i++) {
@@ -1501,13 +1482,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 
         pthread_mutex_unlock(&sctx->work_lock);
 
-        switch (opt_algo) {
-            case ALGO_SCRYPT:
-                work_set_target(work, sctx->job.diff / (65536.0 * opt_diff_factor));
-                break;
-            default:
-                work_set_target(work, sctx->job.diff / opt_diff_factor);
-        }
+        work_set_target(work, sctx->job.diff / (65536.0 * opt_diff_factor));
 
         if (stratum_diff != sctx->job.diff) {
             char sdiff[32] = { 0 };
@@ -1794,15 +1769,11 @@ static void *miner_thread(void *userdata)
         max64 *= (int64_t) thr_hashrates[thr_id];
 
         if (max64 <= 0) {
-            switch (opt_algo) {
-            case ALGO_SCRYPT:
-                max64 = opt_scrypt_n < 16 ? 0x3ffff : 0x3fffff / opt_scrypt_n;
+            max64 = opt_scrypt_n < 16 ? 0x3ffff : 0x3fffff / opt_scrypt_n;
                 if (opt_nfactor > 3)
                     max64 >>= (opt_nfactor - 3);
                 else if (opt_nfactor > 16)
                     max64 = 0xF;
-                break;
-            }
         }
         if ((*nonceptr) + max64 > end_nonce)
             max_nonce = end_nonce;
@@ -1816,14 +1787,7 @@ static void *miner_thread(void *userdata)
             firstwork_time = time(NULL);
 
         /* scan nonces for a proof-of-work hash */
-        switch (opt_algo) {
-        case ALGO_SCRYPT:
-            rc = scanhash_scrypt(thr_id, &work, max_nonce, &hashes_done, scratchbuf, opt_scrypt_n, mythr->forceThroughput);
-            break;
-        default:
-            /* should never happen */
-            goto out;
-        }
+        rc = scanhash_scrypt(thr_id, &work, max_nonce, &hashes_done, scratchbuf, opt_scrypt_n, mythr->forceThroughput);
 
         /* record scanhash elapsed time */
         gettimeofday(&tv_end, NULL);
@@ -1840,12 +1804,8 @@ static void *miner_thread(void *userdata)
             for (i = 0; i < opt_n_total_threads && thr_hashrates[i]; i++)
                 hashrate += thr_hashrates[i];
             if (i == opt_n_total_threads) {
-                switch(opt_algo) {
-                default:
-                    sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.3f", hashrate * 60);
-                    applog(LOG_NOTICE, "Total: %s H/m", s);
-                    break;
-                }
+                sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.3f", hashrate * 60);
+                applog(LOG_NOTICE, "Total: %s H/m", s);
                 global_hashrate = hashrate;
             }
         }
@@ -2132,10 +2092,10 @@ static void *stratum_thread(void *userdata)
                 if (!opt_quiet && last_bloc_height != stratum.bloc_height) {
                     last_bloc_height = stratum.bloc_height;
                     if (net_diff > 0.)
-                        applog(LOG_BLUE, "%s block %d, diff %.3f", algo_names[opt_algo],
+                        applog(LOG_BLUE, "%s block %d, diff %.3f","scrypt",
                             stratum.bloc_height, net_diff);
                     else
-                        applog(LOG_BLUE, "%s %s block %d", short_url, algo_names[opt_algo],
+                        applog(LOG_BLUE, "%s %s block %d", short_url,"scrypt",
                             stratum.bloc_height);
                 }
                 restart_threads();
@@ -3022,7 +2982,7 @@ int main(int argc, char *argv[]) {
     applog(LOG_INFO, "%d miner threads started, "
         "using scrypt algorithm.",
         opt_n_total_threads,
-        algo_names[opt_algo]);
+        "scrypt");
 
     /* main loop - simply wait for workio thread to exit */
     pthread_join(thr_info[work_thr_id].pth, NULL);
