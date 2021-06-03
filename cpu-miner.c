@@ -76,11 +76,6 @@ struct workio_cmd {
     } u;
 };
 
-static const char *algo_names[] = {
-    "scrypt²",
-    "\0"
-};
-
 bool opt_debug = false;
 bool opt_debug_diff = false;
 bool opt_protocol = false;
